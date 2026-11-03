@@ -11,7 +11,7 @@ const display = Press_Start_2P({ variable: "--font-display", subsets: ["latin"],
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
   title: { default: "ETHQuest — The Protocol Playground", template: "%s · ETHQuest" },
-  description: "Scan. Get your swag. Play if you want. Climb the leaderboard. Take home the hoodie. A pixel treasure hunt through Ethereum by EIPsInsight at Devcon 8.",
+  description: "Play quick quests about Ethereum standards, collect pixel EIP trading cards and battle friends. A pixel treasure hunt through Ethereum by EIPsInsight.",
   applicationName: "ETHQuest",
   appleWebApp: { capable: true, title: "ETHQuest", statusBarStyle: "black-translucent" },
   icons: { icon: "/icons/icon-192.png", apple: "/icons/apple-touch-icon.png" },

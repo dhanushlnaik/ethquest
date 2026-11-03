@@ -8,7 +8,7 @@ export default function Page() {
       slug="core-dev-insider"
       path="/play/core-dev-insider"
       title="Core Dev Insider"
-      kicker="RANKED QUEST · COUNTS FOR THE HOODIE"
+      kicker="RANKED QUEST · BEST RUN COUNTS"
       blurb="Ethereum is built in public. Can you find out what core developers decided?"
       back={{ href: "/play", label: "Quest map" }}
       character="governance-wizard"

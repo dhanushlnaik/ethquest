@@ -7,6 +7,8 @@ import { db } from "@/lib/server/db";
 import { getPlayer, requirePlayer, startSession, endSession } from "@/lib/server/session";
 import { assertRateLimit, rateLimit } from "@/lib/server/rate-limit";
 import { awardXP, getXPConfig, grantAchievement, withProgress } from "@/lib/server/progression";
+import { getCatalog, grantCard, grantPack, toView } from "@/lib/server/cards";
+import type { CardView } from "@/lib/cards/types";
 import { cleanNickname, randomNickname } from "@/lib/server/nickname";
 import { getEip, type EipInfo } from "@/lib/server/eipsinsight";
 import { randomToken, sha256, shortCode } from "@/lib/server/crypto";
@@ -38,6 +40,9 @@ export async function startPlaying(formData: FormData) {
     }
     if (!player) throw new Error("Could not create player");
     await startSession(player.id);
+    // Two starter packs: enough cards to build a battle hand right away.
+    await grantPack(db, player.id, "starter:1", "Starter pack");
+    await grantPack(db, player.id, "starter:2", "Starter pack");
     await track("player_created", player.id, {});
   }
   redirect(dest);
@@ -104,7 +109,7 @@ export async function recoverPlayer(formData: FormData) {
 
 // ---------------- EIP Explorer ----------------
 
-export type LookupResult = { eip: EipInfo | null; plain: string | null; upgrade: { name: string; url: string } | null; gains: GainsDTO; fresh: boolean };
+export type LookupResult = { eip: EipInfo | null; plain: string | null; upgrade: { name: string; url: string } | null; gains: GainsDTO; fresh: boolean; card: CardView | null; cardIsNew: boolean };
 
 export async function lookupEip(rawNumber: number) {
   return safeAction<LookupResult>(async () => {
@@ -117,7 +122,10 @@ export async function lookupEip(rawNumber: number) {
     const upgrade = upgradeSlug ? await db.upgrade.findUnique({ where: { slug: upgradeSlug } }) : null;
     const xpCfg = await getXPConfig();
 
+    let cardIsNew = false;
     const { result: fresh, gains } = await withProgress(player, async (tx, gains) => {
+      // Discovering a proposal puts its card in your collection.
+      if (eip) cardIsNew = await grantCard(tx, player.id, number);
       const prior = await tx.eIPLookup.findFirst({ where: { playerId: player.id, number, found: true } });
       await tx.eIPLookup.create({ data: { playerId: player.id, repo: eip?.repo ?? "eip", number, found: !!eip } });
       if (!eip || prior) return !prior && !!eip;
@@ -130,12 +138,16 @@ export async function lookupEip(rawNumber: number) {
       return true;
     });
     await track("eip_search", player.id, { number, found: !!eip });
+    const catalogCard = (await getCatalog()).byNumber.get(number);
+    const cardView = catalogCard ? toView(catalogCard, { count: 1 }) : null;
     return {
       eip,
       plain: curated?.plainEnglish ?? null,
       upgrade: upgrade ? { name: upgrade.name, url: upgrade.eipsinsightUrl } : eip?.upcoming ? { name: eip.upcoming.upgrade, url: `https://eipsinsight.com/upgrade/${eip.upcoming.slug}` } : null,
       gains,
       fresh,
+      card: cardView ? { ...cardView, isNew: cardIsNew } : null,
+      cardIsNew,
     };
   });
 }

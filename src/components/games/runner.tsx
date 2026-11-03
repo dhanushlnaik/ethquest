@@ -208,7 +208,7 @@ function ChoiceRound({ round, game, index, reveal, pending, onPick }: { round: E
             </Panel>
           ) : (
             <Button tone="ghost" size="sm" onClick={askHint} disabled={hintLoading || pending}>
-              <PixelIcon name="question" size={16} /> {hintLoading ? "…" : game.ranked?.counts ? "Hint (−2 pts)" : "Hint"}
+              <PixelIcon name="question" size={16} /> {hintLoading ? "…" : game.ranked ? "Hint (−2 pts)" : "Hint"}
             </Button>
           )}
         </div>
@@ -333,11 +333,10 @@ function RevealPanel({ reveal }: { reveal: Reveal }) {
 // ---------------- Ranked ----------------
 
 function RankedGate({ gate, character, onStart }: { gate: RankedPreview; character: string; onStart: () => void }) {
-  const counts = gate.resumable || (!gate.closed && gate.runsLeft > 0);
   return (
-    <Panel tone={counts ? "gold" : "default"} className="mx-auto max-w-md p-6 text-center">
+    <Panel tone="gold" className="mx-auto max-w-md p-6 text-center">
       <Sprite name={character} size={104} className="mx-auto" />
-      <p className="font-arcade mt-3 text-xs text-gold">{counts ? "Ranked run" : "Practice run"}</p>
+      <p className="font-arcade mt-3 text-xs text-gold">Ranked run</p>
       <p className="font-pixel mt-1 text-2xl">Best: {gate.best}<span className="text-base text-muted">/{gate.max} XP</span></p>
       <ul className="mt-4 space-y-1 text-left text-base">
         <li className="flex justify-between"><span className="text-muted">Accuracy</span><span>up to {gate.base}</span></li>
@@ -347,15 +346,11 @@ function RankedGate({ gate, character, onStart }: { gate: RankedPreview; charact
       </ul>
       <p className="mt-4 text-base">
         {gate.resumable
-          ? <>You already started a ranked run. It resumes where you left off, <b>and its clock kept running</b>.</>
-          : gate.closed
-          ? "Leaderboard scoring has closed. Play for fun!"
-          : counts
-            ? <>Only your best run counts. <b>{gate.runsLeft} of {gate.runsPerDay}</b> ranked runs left today; starting one uses it.</>
-            : <>You&apos;ve used today&apos;s {gate.runsPerDay} ranked runs. Practice runs don&apos;t change your score.</>}
+          ? <>You already started a run. It resumes where you left off, <b>and its clock kept running</b>.</>
+          : <>Only your best run counts on the leaderboard. Replay as often as you like to beat it.</>}
       </p>
-      <Button tone={counts ? "gold" : "purple"} size="lg" className="shine mt-5 w-full" onClick={() => { play("start"); onStart(); }}>
-        {gate.resumable ? "Resume ranked run" : counts ? "Start ranked run" : "Start practice run"}
+      <Button tone="gold" size="lg" className="shine mt-5 w-full" onClick={() => { play("start"); onStart(); }}>
+        {gate.resumable ? "Resume run" : "Start run"}
       </Button>
     </Panel>
   );
@@ -363,17 +358,9 @@ function RankedGate({ gate, character, onStart }: { gate: RankedPreview; charact
 
 function RankedBanner({ info }: { info: NonNullable<StartResult["ranked"]> }) {
   return (
-    <Panel tone={info.counts ? "gold" : "default"} variant={info.counts ? undefined : "sunken"} className="mb-4 flex items-center gap-3 p-3">
-      <PixelIcon name={info.counts ? "trophy" : "hourglass"} size={28} />
-      <p className="min-w-0 flex-1 text-sm">
-        {info.counts ? (
-          <><b>Ranked run.</b> Your best: {info.best}/{info.max} XP. Beat it to climb the leaderboard. {info.runsLeft} more ranked run{info.runsLeft === 1 ? "" : "s"} today after this one.</>
-        ) : info.closed ? (
-          <><b>Practice run.</b> Leaderboard scoring has closed. Play for fun!</>
-        ) : (
-          <><b>Practice run.</b> You&apos;ve used today&apos;s {info.runsPerDay} ranked runs. Your best ({info.best} XP) still counts; ranked runs refill tomorrow.</>
-        )}
-      </p>
+    <Panel tone="gold" className="mb-4 flex items-center gap-3 p-3">
+      <PixelIcon name="trophy" size={28} />
+      <p className="min-w-0 flex-1 text-sm"><b>Ranked run.</b> Your best: {info.best}/{info.max} XP. Beat it to climb the leaderboard.</p>
     </Panel>
   );
 }
@@ -399,9 +386,7 @@ function RankedBreakdown({ run }: { run: NonNullable<NonNullable<AnswerResult["s
         <li className="flex justify-between border-t-2 border-dashed border-[var(--parch-lo)] pt-1"><b>Run score</b><span className="font-arcade text-gold">{run.total}/{run.max}</span></li>
       </ul>
       <p className="mt-2 text-xs text-muted">
-        {!run.counts
-          ? "Practice run: not counted on the leaderboard."
-          : run.improvedBy > 0
+        {run.improvedBy > 0
             ? `New best! +${run.improvedBy} XP on the leaderboard (best is now ${run.best}).`
             : `Your best (${run.best}) still stands. Only your best run counts.`}
       </p>

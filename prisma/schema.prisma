@@ -54,13 +54,20 @@ model Player {
   createdAt    DateTime   @default(now())
   lastSeenAt   DateTime   @default(now())
 
-  sessions     PlayerSession[]
-  xp           XPTransaction[]
-  attempts     MissionAttempt[]
-  achievements PlayerAchievement[]
-  claims       RewardClaim[]
-  pathways     PlayerPathway[]
-  lookups      EIPLookup[]
+  sessions      PlayerSession[]
+  xp            XPTransaction[]
+  attempts      MissionAttempt[]
+  achievements  PlayerAchievement[]
+  claims        RewardClaim[]
+  pathways      PlayerPathway[]
+  lookups       EIPLookup[]
+  cards         PlayerCard[]
+  packs         CardPack[]
+  giftsSent     CardTrade[]         @relation("TradeFrom")
+  giftsGot      CardTrade[]         @relation("TradeTo")
+  battlesMade   CardBattle[]        @relation("BattleChallenger")
+  battlesJoined CardBattle[]        @relation("BattleOpponent")
+  passkeys      Passkey[]
 
   @@index([xpTotal(sort: Desc), createdAt])
 }
@@ -172,19 +179,19 @@ model UpgradeEIP {
 
 // Curated EIPs used for hunts and as an offline fallback; live lookups read EIPsInsight's tables.
 model EIPRecord {
-  repo        String
-  number      Int
-  title       String
-  status      String
-  type        String?
-  category    String?
-  authors     String[]
-  created     String?
+  repo         String
+  number       Int
+  title        String
+  status       String
+  type         String?
+  category     String?
+  authors      String[]
+  created      String?
   plainEnglish String?
-  funFact     String?
-  upgradeSlug String?
-  curated     Boolean  @default(false)
-  fetchedAt   DateTime @default(now())
+  funFact      String?
+  upgradeSlug  String?
+  curated      Boolean  @default(false)
+  fetchedAt    DateTime @default(now())
 
   @@id([repo, number])
 }
@@ -215,14 +222,14 @@ model EIPLookup {
 }
 
 model Pathway {
-  id       String        @id @default(cuid())
-  code     String        @unique
-  title    String
-  tagline  String
-  summary  String
-  color    String
-  steps    PathwayStep[]
-  players  PlayerPathway[]
+  id      String          @id @default(cuid())
+  code    String          @unique
+  title   String
+  tagline String
+  summary String
+  color   String
+  steps   PathwayStep[]
+  players PlayerPathway[]
 }
 
 model PathwayStep {
@@ -404,16 +411,16 @@ enum LiveStatus {
 }
 
 model LiveSession {
-  id                String      @id @default(cuid())
+  id                String     @id @default(cuid())
   /// 4-letter room code shown on the big screen.
-  code              String      @unique
+  code              String     @unique
   quizSlug          String
   title             String
-  status            LiveStatus  @default(LOBBY)
-  currentIndex      Int         @default(-1)
+  status            LiveStatus @default(LOBBY)
+  currentIndex      Int        @default(-1)
   questionStartedAt DateTime?
   createdBy         String?
-  createdAt         DateTime    @default(now())
+  createdAt         DateTime   @default(now())
   endedAt           DateTime?
 
   participants LiveParticipant[]
@@ -450,4 +457,148 @@ model LiveAnswer {
   /// One answer per person per question: double taps and replays can't stack points.
   @@unique([participantId, questionIndex])
   @@index([sessionId, questionIndex])
+}
+
+// ---------------- EIP trading cards ----------------
+
+enum CardRarity {
+  COMMON
+  UNCOMMON
+  RARE
+  EPIC
+  LEGENDARY
+}
+
+/// One collectible card per notable proposal, built from EIPsInsight data (scripts/build-cards.ts).
+model EipCard {
+  number    Int        @id
+  repo      String // "eip" | "erc"
+  title     String
+  status    String
+  category  String?
+  type      String?
+  year      Int?
+  upgrade   String?
+  rarity    CardRarity
+  /// Battle stats, 1–99: Lore (age), Buzz (PR activity), Links (dependencies), Status (lifecycle).
+  lore      Int
+  buzz      Int
+  links     Int
+  stage     Int
+  updatedAt DateTime   @updatedAt
+
+  sets   CardSetMember[]
+  owners PlayerCard[]
+
+  @@index([rarity])
+}
+
+model CardSet {
+  slug        String          @id
+  name        String
+  description String
+  icon        String
+  sortOrder   Int             @default(0)
+  members     CardSetMember[]
+}
+
+model CardSetMember {
+  setSlug String
+  set     CardSet @relation(fields: [setSlug], references: [slug], onDelete: Cascade)
+  number  Int
+  card    EipCard @relation(fields: [number], references: [number], onDelete: Cascade)
+
+  @@id([setSlug, number])
+}
+
+model PlayerCard {
+  playerId String
+  player   Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  number   Int
+  card     EipCard  @relation(fields: [number], references: [number], onDelete: Cascade)
+  count    Int      @default(1)
+  firstAt  DateTime @default(now())
+
+  @@id([playerId, number])
+  @@index([number])
+}
+
+/// A booster pack. Earned with an idempotency key (one pack per reason), opened later.
+model CardPack {
+  id        String    @id @default(cuid())
+  playerId  String
+  player    Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  reason    String
+  key       String
+  cards     Int[]
+  createdAt DateTime  @default(now())
+  openedAt  DateTime?
+
+  @@unique([playerId, key])
+  @@index([playerId, openedAt])
+}
+
+enum CardTradeStatus {
+  OPEN
+  CLAIMED
+  CANCELLED
+}
+
+/// A duplicate card offered as a gift via QR. The giver's copy is reserved until claimed or cancelled.
+model CardTrade {
+  id        String          @id @default(cuid())
+  code      String          @unique
+  fromId    String
+  from      Player          @relation("TradeFrom", fields: [fromId], references: [id], onDelete: Cascade)
+  toId      String?
+  to        Player?         @relation("TradeTo", fields: [toId], references: [id], onDelete: SetNull)
+  number    Int
+  status    CardTradeStatus @default(OPEN)
+  createdAt DateTime        @default(now())
+  claimedAt DateTime?
+  expiresAt DateTime
+}
+
+enum CardBattleStatus {
+  OPEN
+  DONE
+  CANCELLED
+}
+
+/// Best-of-3 stat duel. The challenger locks in 3 cards and shares a code; the opponent answers with 3 of theirs.
+model CardBattle {
+  id              String           @id @default(cuid())
+  code            String           @unique
+  challengerId    String
+  challenger      Player           @relation("BattleChallenger", fields: [challengerId], references: [id], onDelete: Cascade)
+  challengerCards Int[]
+  opponentId      String?
+  opponent        Player?          @relation("BattleOpponent", fields: [opponentId], references: [id], onDelete: SetNull)
+  opponentCards   Int[]
+  /// Practice battles against the house deck.
+  vsBot           Boolean          @default(false)
+  rounds          Json?
+  winnerId        String?
+  status          CardBattleStatus @default(OPEN)
+  createdAt       DateTime         @default(now())
+  finishedAt      DateTime?
+
+  @@index([challengerId, createdAt])
+  @@index([opponentId, createdAt])
+}
+
+// ---------------- Passkeys (save your profile, log in on any device) ----------------
+
+model Passkey {
+  /// WebAuthn credential ID (base64url).
+  id         String    @id
+  playerId   String
+  player     Player    @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  publicKey  Bytes
+  counter    Int       @default(0)
+  transports String[]
+  createdAt  DateTime  @default(now())
+  lastUsedAt DateTime?
+
+  @@index([playerId])
 }

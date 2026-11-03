@@ -22,7 +22,7 @@ const num = (rows: Row[]) => rows.map((r) => ({ k: r.k ?? "—", n: Number(r.n) 
 
 async function Stats() {
   await requireAdminPage();
-  const [players, sessions, events, starts, completes, difficulty, hints, scores, roles, interests, searches, clicks, xp, redeemed, timeline] = await Promise.all([
+  const [players, sessions, events, starts, completes, difficulty, hints, scores, roles, interests, searches, clicks, xp, liveRooms, timeline] = await Promise.all([
     db.player.count(),
     db.playerSession.count(),
     db.$queryRaw<Row[]>`SELECT name AS k, COUNT(*) AS n FROM "Event" GROUP BY 1 ORDER BY 2 DESC`,
@@ -36,7 +36,7 @@ async function Stats() {
     db.$queryRaw<Row[]>`SELECT number::text AS k, COUNT(*) AS n FROM "EIPLookup" GROUP BY 1 ORDER BY 2 DESC LIMIT 10`,
     db.$queryRaw<Row[]>`SELECT props->>'path' AS k, COUNT(*) AS n FROM "Event" WHERE name='product_click' GROUP BY 1 ORDER BY 2 DESC LIMIT 10`,
     db.xPTransaction.aggregate({ _sum: { amount: true } }),
-    db.$queryRaw<Row[]>`SELECT r.name AS k, COUNT(*) AS n FROM "RewardClaim" c JOIN "Reward" r ON r.id=c."rewardId" WHERE c.status='REDEEMED' GROUP BY 1`,
+    db.$queryRaw<Row[]>`SELECT s.title AS k, COUNT(p.id) AS n FROM "LiveSession" s LEFT JOIN "LiveParticipant" p ON p."sessionId"=s.id GROUP BY 1`,
     db.$queryRaw<{ k: string; avg: number }[]>`SELECT 'timeline' AS k, ROUND(AVG(a.score::numeric / NULLIF(a."maxScore",0)) * 100, 1)::float AS avg FROM "MissionAttempt" a JOIN "Mission" m ON m.id=a."missionId" WHERE a.status='COMPLETED' AND m.slug='timeline-rebuild'`,
   ]);
   const startMap = new Map(num(starts).map((r) => [r.k, r.n]));
@@ -55,7 +55,7 @@ async function Stats() {
           ["Timeline accuracy", `${timeline[0]?.avg ?? 0}%`],
           ["EIP searches", num(searches).reduce((s, r) => s + r.n, 0)],
           ["Product clicks", num(clicks).reduce((s, r) => s + r.n, 0)],
-          ["Rewards redeemed", num(redeemed).reduce((s, r) => s + r.n, 0)],
+          ["Live quiz players", num(liveRooms).reduce((s, r) => s + r.n, 0)],
         ].map(([l, v]) => (
           <Panel key={String(l)} variant="raised" className="p-3">
             <p className="font-arcade text-xs text-muted">{String(l).toUpperCase()}</p>
@@ -86,7 +86,7 @@ async function Stats() {
         <Breakdown title="Popular interests" rows={num(interests)} />
         <Breakdown title="Top EIP searches" rows={num(searches).map((r) => ({ ...r, k: `EIP-${r.k}` }))} />
         <Breakdown title="Product clicks by page" rows={num(clicks)} />
-        <Breakdown title="Redeemed by reward" rows={num(redeemed)} />
+        <Breakdown title="Live quiz players by quiz" rows={num(liveRooms)} />
         <Breakdown title="All events" rows={num(events)} />
       </div>
     </div>

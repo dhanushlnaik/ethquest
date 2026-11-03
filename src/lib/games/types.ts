@@ -35,6 +35,7 @@ export type GainsDTO = {
   levelUp: { level: number; name: string } | null;
   achievements: { slug: string; name: string; icon: string; description: string }[];
   capped: boolean;
+  packs: number;
 };
 
 export type StartResult = {
@@ -47,17 +48,9 @@ export type StartResult = {
   ranked?: RankedInfo;
 };
 
-export type RankedInfo = {
-  /** false = practice run (daily cap reached or scoring closed): no XP. */
-  counts: boolean;
-  runsLeft: number;
-  runsPerDay: number;
-  best: number;
-  max: number;
-  closed: boolean;
-};
+export type RankedInfo = { best: number; max: number };
 
-export type RankedRun = { base: number; perfect: number; speed: number; total: number; max: number; best: number; improvedBy: number; counts: boolean; seconds: number };
+export type RankedRun = { base: number; perfect: number; speed: number; total: number; max: number; best: number; improvedBy: number; seconds: number };
 
 export type AnswerResult = {
   reveal: Reveal;

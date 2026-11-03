@@ -13,7 +13,7 @@ export default function WorldsPage() {
   return (
     <>
       <SectionTitle kicker="Quest map" title="Choose your island">
-        Four ranked quests count for the hoodie. Side quests give a one-time XP bonus. Every game takes 1–3 minutes.
+        Four ranked quests climb the Hall of Fame. Side quests give a one-time XP bonus. Every game takes 1–3 minutes.
       </SectionTitle>
       <Suspense fallback={<PixelLoader label="Loading worlds" />}>
         <WorldMap />

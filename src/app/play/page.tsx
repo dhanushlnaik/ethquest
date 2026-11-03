@@ -1,23 +1,29 @@
 import { Suspense } from "react";
 import Link from "next/link";
+import { connection } from "next/server";
 import { startPlaying } from "@/app/actions/player";
+import { db } from "@/lib/server/db";
 import { getPlayer } from "@/lib/server/session";
-import { getJourney } from "@/lib/server/journey";
-import { REWARD_TIERS } from "@/lib/config/game";
-import { Bar, Button, ButtonLink, cx, PixelIcon, PixelLoader, Sprite, Tag, Treasure } from "@/components/pixel";
+import { rankedBests } from "@/lib/server/event";
+import { rankOf } from "@/lib/server/leaderboard";
+import { collection, dayKey, getCatalog, toView, unopenedPacks } from "@/lib/server/cards";
+import { RANKED_GAMES, type RankedSlug } from "@/lib/config/game";
+import { Bar, Button, cx, PixelIcon, PixelLoader, Sprite, Treasure } from "@/components/pixel";
 import { Logo } from "@/components/logo";
 import { EipsInsightPromo } from "@/components/promo";
-import { Countdown } from "@/components/countdown";
+import { DailyPackButton } from "@/components/cards/card-client";
+import { PixelCard } from "@/components/cards/pixel-card";
+import { SaveProfileCard } from "@/components/passkey";
 
 export default function Home() {
   return (
     <div className="-mt-2">
       <section className="relative mx-auto flex max-w-3xl flex-col items-center pb-6 pt-4 text-center">
-        <p className="font-arcade text-xs tracking-widest text-gold">EIPsInsight Impact Booth · Devcon 8 Mumbai</p>
+        <p className="font-arcade text-xs tracking-widest text-gold">EIPsInsight presents</p>
         <Logo className="mt-4" />
         <p className="font-pixel mt-5 max-w-2xl text-balance text-base leading-relaxed [text-shadow:0_2px_0_rgba(20,14,8,0.7)] sm:text-xl">
-          <span className="inline-block">Scan. Get your swag.</span> <span className="inline-block">Play if you want.</span>{" "}
-          <span className="inline-block">Climb the leaderboard.</span> <span className="inline-block text-gold">Take home the hoodie.</span>
+          <span className="inline-block">Learn Ethereum standards.</span> <span className="inline-block">Collect every EIP.</span>{" "}
+          <span className="inline-block text-gold">Battle your friends.</span>
         </p>
         <div className="mt-5 flex items-end justify-center gap-1 sm:gap-3">
           {["builder", "protocol-engineer", "explorer", "governance-wizard", "researcher"].map((c, i) => (
@@ -27,127 +33,124 @@ export default function Home() {
           ))}
         </div>
       </section>
-      <Suspense fallback={<PixelLoader label="Unrolling the map" />}>
-        <Journey />
+      <Suspense fallback={<PixelLoader label="Loading your adventure" />}>
+        <Dashboard />
       </Suspense>
     </div>
   );
 }
 
-async function Journey() {
+async function Dashboard() {
   const player = await getPlayer();
   if (!player) return <Newcomer />;
-  const j = await getJourney(player);
-  const tshirtProgress = Math.min(1, player.xpTotal / j.tshirt.need);
+  await connection();
+  const [bests, rank, packs, col, cat, recent, daily, passkeys] = await Promise.all([
+    rankedBests(player.id),
+    rankOf(player.id, player.xpTotal),
+    unopenedPacks(player.id),
+    collection(player.id),
+    getCatalog(),
+    db.playerCard.findMany({ where: { playerId: player.id }, orderBy: { firstAt: "desc" }, take: 4 }),
+    db.cardPack.findUnique({ where: { playerId_key: { playerId: player.id, key: `daily:${dayKey()}` } }, select: { id: true } }),
+    db.passkey.count({ where: { playerId: player.id } }),
+  ]);
+  const games = (Object.keys(RANKED_GAMES) as RankedSlug[]).map((slug) => {
+    const g = RANKED_GAMES[slug];
+    return { slug, ...g, max: g.base + g.perfect + g.speed, best: bests[slug] ?? 0 };
+  });
 
   return (
-    <div className="mx-auto max-w-3xl">
-      <ol className="relative space-y-5 before:absolute before:bottom-8 before:left-[34px] before:top-8 before:w-0 before:border-l-[4px] before:border-dashed before:border-gold/70 sm:before:left-[42px]">
-        {/* LEVEL 1 · THE DROP */}
-        <Stop n={1} kicker={REWARD_TIERS.welcome.kicker} title={`Level 1: ${REWARD_TIERS.welcome.name}`} art="chest-open" done={j.welcome.state === "collected"}>
-          <p className="text-sm text-muted">Your welcome reward: <b className="text-text">Stickers + Jute bag</b>, subject to stock. No quiz, no registration.</p>
-          <div className="mt-3">
-            {j.welcome.state === "collected" ? (
-              <Tag tone="green">Collected ✓</Tag>
-            ) : j.welcome.state === "soldout" ? (
-              <Tag tone="red">Out of stock right now</Tag>
-            ) : (
-              <ButtonLink href="/play/welcome" size="sm" className="shine">
-                <PixelIcon name="gift" size={18} /> Open your chest
-              </ButtonLink>
-            )}
-          </div>
-        </Stop>
+    <div className="mx-auto max-w-4xl space-y-5">
+      {packs.length > 0 && (
+        <Link href="/play/cards" className="px-panel px-panel--gold anim-pop-in flex items-center gap-4 p-4 transition-transform hover:-translate-y-0.5">
+          <Treasure name="chest-closed" size={64} className="anim-rattle" />
+          <span className="min-w-0 flex-1">
+            <span className="font-arcade block text-xs text-gold">Booster packs</span>
+            <span className="font-pixel block text-2xl">{packs.length} pack{packs.length === 1 ? "" : "s"} waiting!</span>
+          </span>
+          <span className="px-btn px-btn--sm shine">Open ▶</span>
+        </Link>
+      )}
 
-        {/* LEVEL 2 · THE PLAYGROUND */}
-        <Stop n={2} kicker={REWARD_TIERS.tshirt.kicker} title={`Level 2: ${REWARD_TIERS.tshirt.name}`} art="tshirt" done={j.tshirt.state === "collected"}>
-          <p className="text-sm text-muted">Play the four quests and earn XP. Reach <b className="text-text">{j.tshirt.need} XP</b> to unlock an EIPsInsight T-shirt, while stocks last.</p>
-          <div className="mt-3 flex items-center gap-2">
-            <Bar value={tshirtProgress} className="flex-1" label="T-shirt progress" />
-            <span className="font-arcade text-xs text-gold">{player.xpTotal}/{j.tshirt.need}</span>
-          </div>
-          {j.tshirt.state === "ready" && (
-            <ButtonLink href="/play/rewards" tone="gold" size="sm" className="shine mt-3"><PixelIcon name="qr" size={16} /> Claim your T-shirt</ButtonLink>
-          )}
-          {j.tshirt.state === "collected" && <Tag tone="green" className="mt-3">T-shirt collected ✓</Tag>}
-          <ul className="mt-4 grid gap-3 sm:grid-cols-2">
-            {j.games.map((g, i) => (
-              <li key={g.slug} className="anim-pop-in" style={{ animationDelay: `${i * 80}ms` }}>
-                <Link href={g.href} className="group px-panel px-panel--raised flex items-center gap-3 p-3 transition-transform hover:-translate-y-0.5">
-                  <Sprite name={g.character} size={56} className="shrink-0" />
-                  <span className="min-w-0 flex-1">
-                    <span className="font-pixel block text-lg leading-tight">{g.title}</span>
-                    <span className="block text-xs text-muted">{g.challenge}</span>
-                    <span className="mt-1.5 flex items-center gap-2">
-                      <Bar value={g.best / g.max} tone="purple" className="h-3 flex-1" label={`${g.title} best score`} />
-                      <span className="font-arcade text-[11px] text-gold">{g.best}/{g.max}</span>
-                    </span>
-                    <span className="font-arcade mt-1 block text-[11px] text-faint">
-                      {j.open ? `${g.runsLeft} ranked run${g.runsLeft === 1 ? "" : "s"} left today` : "Scoring closed"}
-                    </span>
+      {passkeys === 0 && <SaveProfileCard />}
+
+      {/* PLAY */}
+      <section className="px-panel p-4">
+        <div className="flex flex-wrap items-baseline justify-between gap-2">
+          <h2 className="font-pixel text-2xl">Play</h2>
+          <Link href="/play/leaderboard" className="font-arcade text-xs text-gold">{rank ? `Hall of Fame #${rank} ›` : "Hall of Fame ›"}</Link>
+        </div>
+        <p className="text-sm text-muted">Four ranked quests. Your best run counts, and each one earns a booster pack per day.</p>
+        <ul className="mt-3 grid gap-3 sm:grid-cols-2">
+          {games.map((g, i) => (
+            <li key={g.slug} className="anim-pop-in" style={{ animationDelay: `${i * 70}ms` }}>
+              <Link href={g.href} className="group px-panel px-panel--raised flex items-center gap-3 p-3 transition-transform hover:-translate-y-0.5">
+                <Sprite name={g.character} size={52} className="shrink-0" />
+                <span className="min-w-0 flex-1">
+                  <span className="font-pixel block text-lg leading-tight">{g.title}</span>
+                  <span className="block text-xs text-muted">{g.challenge}</span>
+                  <span className="mt-1.5 flex items-center gap-2">
+                    <Bar value={g.best / g.max} tone="purple" className="h-3 flex-1" label={`${g.title} best`} />
+                    <span className="font-arcade text-[11px] text-gold">{g.best}/{g.max}</span>
                   </span>
-                  <span className="font-arcade text-xs text-gold transition-transform group-hover:translate-x-1">▶</span>
-                </Link>
-              </li>
-            ))}
-          </ul>
-          <Link href="/play/worlds" className="px-panel px-panel--green mt-3 flex items-center gap-3 p-3">
-            <Treasure name="map" size={40} />
-            <span className="min-w-0 flex-1">
-              <span className="font-pixel block">Side quests</span>
-              <span className="block text-xs text-muted">Timeline, Spot the Fake, Pathfinder and more. One-time bonus XP each.</span>
-            </span>
-            <span className="font-arcade text-xs text-gold">+{Math.max(0, j.sideXp)} XP</span>
-          </Link>
-        </Stop>
+                </span>
+                <span className="font-arcade text-xs text-gold transition-transform group-hover:translate-x-1">▶</span>
+              </Link>
+            </li>
+          ))}
+        </ul>
+        <Link href="/play/worlds" className="px-panel px-panel--green mt-3 flex items-center gap-3 p-3">
+          <Treasure name="map" size={36} />
+          <span className="min-w-0 flex-1">
+            <span className="font-pixel block">Side quests</span>
+            <span className="block text-xs text-muted">Timeline, Spot the Fake, Pathfinder, Find Your EIP… each clear earns a pack.</span>
+          </span>
+          <span className="font-arcade text-xs text-gold">▶</span>
+        </Link>
+      </section>
 
-        {/* LEVEL 3 · THE PROTOCOL CHAMPION */}
-        <Stop n={3} kicker={REWARD_TIERS.hoodie.kicker} title={`Level 3: ${REWARD_TIERS.hoodie.name}`} art="hoodie" done={j.hoodie.state === "collected"} glow>
-          <p className="text-sm text-muted">
-            Compete on the two-day leaderboard. <b className="text-text">ONE exclusive EIPsInsight hoodie</b> for the highest eligible score.
-          </p>
-          <div className="mt-3 flex flex-wrap items-center gap-3">
-            <span className="px-panel px-panel--sunken px-3 py-1.5">
-              <span className="font-arcade text-[11px] text-muted">Your rank </span>
-              <span className="font-pixel text-xl">{j.rank ? `#${j.rank}` : "–"}</span>
-            </span>
-            {j.open ? (
-              <span className="text-xs text-muted">
-                Scoring closes in <Countdown to={j.cfg.leaderboardClosesAt} className="font-arcade text-gold" />
-              </span>
-            ) : (
-              <span className="font-arcade text-xs text-gold">Scoring closed · winner announced at the booth</span>
-            )}
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2">
-            <ButtonLink href="/play/leaderboard" tone="gold" size="sm"><PixelIcon name="trophy" size={16} /> Leaderboard</ButtonLink>
-            {j.hoodie.state === "ready" && <ButtonLink href="/play/rewards" size="sm" className="shine">Claim the hoodie</ButtonLink>}
-          </div>
-        </Stop>
-      </ol>
-      <EipsInsightPromo className="mt-8" />
-      <p className="mt-6 text-center text-sm">
-        <Link href="/play/recover" className="text-gold underline underline-offset-4">Continue on another device</Link>
+      {/* COLLECT */}
+      <section className="px-panel p-4">
+        <div className="flex flex-wrap items-center justify-between gap-2">
+          <h2 className="font-pixel text-2xl">Collect</h2>
+          <DailyPackButton claimed={!!daily} />
+        </div>
+        <div className="mt-2 flex items-center gap-3">
+          <Bar value={col.owned / col.total} className="flex-1" label="Collection progress" />
+          <span className="font-arcade text-xs text-gold">{col.owned}/{col.total}</span>
+        </div>
+        <p className="mt-1 text-sm text-muted">{col.sets.filter((s) => s.complete).length} of {col.sets.length} sets complete · {col.duplicates} duplicates to gift or battle with</p>
+        {recent.length > 0 ? (
+          <ul className="no-scrollbar mt-3 flex gap-3 overflow-x-auto pb-1">
+            {recent.map((r) => {
+              const c = cat.byNumber.get(r.number);
+              return c ? <li key={r.number} className="shrink-0"><Link href={`/play/cards/${r.number}`}><PixelCard card={toView(c, { count: r.count })} size="sm" /></Link></li> : null;
+            })}
+          </ul>
+        ) : (
+          <p className="mt-3">Open your packs to start your collection.</p>
+        )}
+        <Link href="/play/cards" className="px-btn px-btn--gold px-btn--sm mt-3">Open collection</Link>
+      </section>
+
+      {/* BATTLE */}
+      <Link href="/play/battle" className="px-panel px-panel--purple flex items-center gap-4 p-4 transition-transform hover:-translate-y-0.5">
+        <span className="flex -space-x-6">
+          {recent.slice(0, 3).map((r) => { const c = cat.byNumber.get(r.number); return c ? <span key={r.number} className="origin-bottom-left scale-[0.5]" style={{ width: 66, height: 105 }}><PixelCard card={toView(c)} size="sm" /></span> : null; })}
+        </span>
+        <span className="min-w-0 flex-1">
+          <span className="font-arcade block text-xs text-gold">Battle</span>
+          <span className="font-pixel block text-2xl">Card Battles</span>
+          <span className="block text-sm text-muted">Best of 3 on hidden stats. Challenge a friend by QR or practice vs the House.</span>
+        </span>
+        <span className="font-arcade text-xs text-gold">▶</span>
+      </Link>
+
+      <EipsInsightPromo />
+      <p className="text-center text-sm">
+        <Link href="/play/recover" className="text-gold underline underline-offset-4">Use a recovery code</Link>
       </p>
     </div>
-  );
-}
-
-function Stop({ n, kicker, title, art, done, glow, children }: { n: number; kicker: string; title: string; art: string; done?: boolean; glow?: boolean; children: React.ReactNode }) {
-  return (
-    <li className="anim-pop-in relative flex gap-3 sm:gap-4" style={{ animationDelay: `${n * 120}ms` }}>
-      <div className="relative z-10 shrink-0">
-        <div className={cx("px-panel grid h-[72px] w-[72px] place-items-center sm:h-[88px] sm:w-[88px]", done ? "px-panel--green" : glow ? "px-panel--gold" : "")}>
-          <Treasure name={art} size={56} className={cx(glow && !done && "anim-glow", !done && "anim-float")} />
-        </div>
-        <span className="font-arcade absolute -bottom-2 left-1/2 -translate-x-1/2 rounded-sm bg-[var(--wood-dk)] px-1.5 text-[11px] text-gold">{done ? "✓" : `LV${n}`}</span>
-      </div>
-      <section className={cx("px-panel min-w-0 flex-1 p-4", glow && "px-panel--gold")}>
-        <p className="font-arcade text-[11px] text-gold">{kicker}</p>
-        <h2 className="font-pixel text-2xl leading-tight">{title}</h2>
-        <div className="mt-1">{children}</div>
-      </section>
-    </li>
   );
 }
 
@@ -155,22 +158,25 @@ function Newcomer() {
   return (
     <div className="mx-auto max-w-3xl">
       <form action={startPlaying} className="mx-auto max-w-sm">
-        <input type="hidden" name="next" value="/play/welcome" />
+        <input type="hidden" name="next" value="/play/cards" />
         <Button size="lg" className="shine w-full" type="submit">
-          <PixelIcon name="gift" size={22} /> Open your welcome chest
+          <PixelIcon name="gift" size={22} /> Start: get 2 free packs
         </Button>
-        <p className="mt-2 text-center text-xs text-muted">Free stickers + jute bag. No sign-up, no wallet, no quiz.</p>
+        <p className="mt-2 text-center text-xs text-muted">No sign-up needed. Save your profile with a passkey any time.</p>
       </form>
+      <p className="mt-3 text-center text-sm">
+        Played before? <Link href="/play/login" className="text-gold underline underline-offset-4">Log in with your passkey</Link>
+      </p>
       <ul className="mt-8 grid gap-3 sm:grid-cols-3">
         {[
-          { art: "chest-open", t: REWARD_TIERS.welcome, body: "Scan, land here, unlock stickers + a jute bag." },
-          { art: "tshirt", t: REWARD_TIERS.tshirt, body: "Play four quick quests, earn XP, unlock a T-shirt." },
-          { art: "hoodie", t: REWARD_TIERS.hoodie, body: "Top the two-day leaderboard. ONE hoodie. ONE champion." },
+          { art: "map", k: "Play", t: "Quick quests", body: "Trivia, upgrade history, real All Core Devs decisions and EIP hunts." },
+          { art: "chest-open", k: "Collect", t: "EIP trading cards", body: "392 proposals as pixel cards. Open packs, complete sets, gift duplicates." },
+          { art: "crown", k: "Battle", t: "Card duels", body: "Best of 3 on Lore, Buzz, Links and Stage. Challenge friends by QR." },
         ].map((s, i) => (
-          <li key={s.art} className={cx("px-panel anim-pop-in p-4 text-center", i === 2 && "px-panel--gold")} style={{ animationDelay: `${300 + i * 120}ms` }}>
+          <li key={s.k} className={cx("px-panel anim-pop-in p-4 text-center", i === 1 && "px-panel--gold")} style={{ animationDelay: `${300 + i * 120}ms` }}>
             <Treasure name={s.art} size={64} className="anim-float mx-auto" />
-            <p className="font-arcade mt-2 text-[11px] text-gold">{s.t.kicker}</p>
-            <p className="font-pixel text-xl">Level {s.t.tier}: {s.t.name}</p>
+            <p className="font-arcade mt-2 text-[11px] text-gold">{s.k}</p>
+            <p className="font-pixel text-xl">{s.t}</p>
             <p className="mt-1 text-sm text-muted">{s.body}</p>
           </li>
         ))}

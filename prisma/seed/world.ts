@@ -261,20 +261,22 @@ export const achievements = [
   { slug: "builder-dna", name: "Builder DNA", description: "Discovered your Ethereum builder type.", icon: "helix", xpBonus: 0 },
   { slug: "protocol-nerd", name: "Protocol Nerd", description: "Completed a game on Protocol Nerd difficulty.", icon: "brain", xpBonus: 0 },
   { slug: "perfect-round", name: "Perfect Round", description: "5/5 in Guess That EIP.", icon: "star", xpBonus: 0 },
-  { slug: "devcon-og", name: "Devcon OG", description: "Collected swag at the EIPsInsight booth, Devcon 8 Mumbai.", icon: "ticket", xpBonus: 0 },
+  { slug: "pack-opener", name: "Pack Opener", description: "Opened your first EIP booster pack.", icon: "gift", xpBonus: 0 },
+  { slug: "legendary-pull", name: "Legendary Pull", description: "Pulled a Legendary EIP card from a pack.", icon: "crown", xpBonus: 0 },
+  { slug: "set-collector", name: "Set Collector", description: "Completed a full card set.", icon: "trophy", xpBonus: 0 },
+  { slug: "generous", name: "Generous", description: "Gifted a card to a friend.", icon: "gift", xpBonus: 0 },
+  { slug: "card-battler", name: "Card Battler", description: "Won your first card battle.", icon: "bolt", xpBonus: 0 },
   { slug: "champion", name: "Protocol Legend", description: "Reached Level 7, the top level. (The hoodie champion is decided on the leaderboard.)", icon: "crown", xpBonus: 0 },
   { slug: "eip-wall", name: "EIP Wall Artist", description: "Left your mark on the physical EIP Wall.", icon: "brick", xpBonus: 0, manual: true },
   { slug: "shorts-star", name: "Shorts Star", description: "Played a booth video challenge with the EIPsInsight team.", icon: "camera", xpBonus: 0, manual: true },
 ];
 
-// ---------------- Rewards (stock is a placeholder — set real inventory in /booth-admin/rewards) ----------------
-export const rewards = [
-  { slug: "welcome-pack", name: "Stickers + Jute bag", description: "Level 1 · The Drop. Free for everyone who scans the booth QR, subject to stock.", icon: "jute-bag", xpRequired: 0, stock: 600 },
-  { slug: "tshirt", name: "EIPsInsight T-shirt", description: "Level 2 · The Playground. Unlocks at the XP milestone, while stocks last.", icon: "tshirt", xpRequired: 100, stock: 120 },
-  { slug: "hoodie", name: "Exclusive EIPsInsight Hoodie", description: "Level 3 · The Protocol Champion. ONE hoodie for the #1 player on the two-day leaderboard.", icon: "hoodie", xpRequired: 0, stock: 1 },
-];
-/** Rewards from the earlier tiering, switched off on re-seed. */
-export const retiredRewards = ["sticker", "sticker-pack", "collectible", "premium"];
+// ---------------- Rewards ----------------
+// Physical swag was retired: ETHQuest is a learning + collecting platform now. Old reward rows are switched off on re-seed.
+export const rewards: { slug: string; name: string; description: string; icon: string; xpRequired: number; stock: number }[] = [];
+export const retiredRewards = ["sticker", "sticker-pack", "collectible", "premium", "welcome-pack", "tshirt", "hoodie"];
+/** Achievements that only made sense with swag. */
+export const retiredAchievements = ["devcon-og"];
 
 // ---------------- Missions ----------------
 export const missions = [

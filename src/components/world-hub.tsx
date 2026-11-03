@@ -75,7 +75,7 @@ async function MissionList({ world }: { world: WorldKey }) {
               <span className="font-pixel block text-xl leading-tight">{m.title}</span>
               <span className="block text-sm text-muted">{m.blurb}</span>
               <span className="mt-1 flex gap-2">
-                {isRanked(m.slug) ? <Tag tone="gold">Ranked · hoodie</Tag> : m.xpComplete > 0 && <Tag tone="gold">Side quest +{m.xpComplete} XP</Tag>}
+                {isRanked(m.slug) ? <Tag tone="gold">Ranked</Tag> : m.xpComplete > 0 && <Tag tone="gold">Side quest +{m.xpComplete} XP</Tag>}
                 {done.has(m.slug) && (
                   <Tag tone="green">
                     <PixelIcon name="check" size={10} /> Done

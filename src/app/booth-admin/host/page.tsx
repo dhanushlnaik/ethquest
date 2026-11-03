@@ -29,7 +29,7 @@ async function Guide() {
         <p className="font-pixel text-lg">Consent first, always</p>
         <ul className="mt-2 list-disc space-y-1 pl-5 text-sm">
           <li>Ask for <b>recording consent</b> and <b>publishing consent</b> separately, before filming.</li>
-          <li>Swag eligibility never depends on filming. Players earn rewards through the game.</li>
+          <li>Playing never depends on filming. Nobody has to appear on camera to take part.</li>
           <li>If someone wants a clip removed later, honour it.</li>
           <li>After filming (with consent), you may grant the &ldquo;Shorts Star&rdquo; badge in Players.</li>
         </ul>

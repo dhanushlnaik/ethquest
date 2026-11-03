@@ -26,7 +26,7 @@ async function Settings() {
       <h1 className="font-pixel text-3xl">Settings</h1>
       <Panel variant="raised" className="p-4">
         <p className="font-pixel text-xl">XP engine</p>
-        <p className="mb-3 text-sm text-muted">One-time side-quest XP amounts. Ranked game scoring and event rules live on the Hoodie champion page.</p>
+        <p className="mb-3 text-sm text-muted">One-time side-quest XP amounts. Ranked games always count only each player&apos;s best run.</p>
         <ActionForm action={saveXPConfig}>
           <Field label="XP config (JSON)"><textarea name="xp" defaultValue={JSON.stringify(xp, null, 2)} rows={16} className={`${inputCls} font-mono text-xs`} /></Field>
         </ActionForm>
@@ -50,7 +50,7 @@ async function Settings() {
         <ul className="mt-2 space-y-1 text-sm">
           <li>Player QR (print this): <code className="text-gold">{SITE_URL}/play</code></li>
           <li>Kiosk leaderboard: <code className="text-gold">{SITE_URL}/kiosk/leaderboard?token=…</code> (token is KIOSK_TOKEN in the server env)</li>
-          <li>Volunteer scanner: <code className="text-gold">{SITE_URL}/booth-admin/scan</code></li>
+          <li>Live quiz host: <code className="text-gold">{SITE_URL}/live/host</code></li>
         </ul>
       </Panel>
     </div>

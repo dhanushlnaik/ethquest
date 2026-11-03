@@ -47,7 +47,7 @@ export function EipsInsightPromo({ className, compact }: { className?: string; c
           </li>
         ))}
       </ul>
-      {!compact && <p className="font-arcade mt-3 text-center text-xs text-gold">Follow @EIPsInsight on X for the hoodie winner announcement</p>}
+      {!compact && <p className="font-arcade mt-3 text-center text-xs text-gold">Follow @EIPsInsight on X for weekly protocol updates</p>}
     </section>
   );
 }

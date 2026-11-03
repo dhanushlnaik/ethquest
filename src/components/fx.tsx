@@ -16,7 +16,7 @@ export function useFx() {
   return ctx;
 }
 
-type Pop = { id: number; xp: number; capped: boolean };
+type Pop = { id: number; xp: number; capped: boolean; packs: number };
 
 export function FxProvider({ children }: { children: ReactNode }) {
   const router = useRouter();
@@ -26,9 +26,9 @@ export function FxProvider({ children }: { children: ReactNode }) {
   const celebrate = useCallback(
     (g: GainsDTO | undefined | null) => {
       if (!g) return;
-      if (g.xp > 0 || g.capped) {
+      if (g.xp > 0 || g.capped || g.packs > 0) {
         const id = Date.now() + Math.random();
-        setPops((p) => [...p, { id, xp: g.xp, capped: g.capped && g.xp === 0 }]);
+        setPops((p) => [...p, { id, xp: g.xp, capped: g.capped && g.xp === 0, packs: g.packs ?? 0 }]);
         if (g.xp > 0) play("xp");
         setTimeout(() => setPops((p) => p.filter((x) => x.id !== id)), 1800);
       }
@@ -37,7 +37,7 @@ export function FxProvider({ children }: { children: ReactNode }) {
         ...(g.levelUp ? [{ type: "level" as const, level: g.levelUp.level, name: g.levelUp.name }] : []),
       ];
       if (modal.length) setQueue((q) => [...q, ...modal]);
-      if (g.xp > 0 || modal.length) router.refresh();
+      if (g.xp > 0 || g.packs > 0 || modal.length) router.refresh();
     },
     [router],
   );
@@ -60,7 +60,9 @@ export function FxProvider({ children }: { children: ReactNode }) {
               className="px-panel px-panel--gold flex items-center gap-2 px-4 py-2"
             >
               <PixelIcon name={p.capped ? "hourglass" : "bolt"} size={22} />
-              <span className="font-arcade text-xs text-gold">{p.capped ? "XP CAP REACHED TODAY" : `+${p.xp} XP`}</span>
+              <span className="font-arcade text-xs text-gold">
+                {[p.xp > 0 && `+${p.xp} XP`, p.packs > 0 && `+${p.packs} pack${p.packs > 1 ? "s" : ""}`].filter(Boolean).join(" · ") || (p.capped ? "XP CAP REACHED TODAY" : "")}
+              </span>
             </motion.div>
           ))}
         </AnimatePresence>

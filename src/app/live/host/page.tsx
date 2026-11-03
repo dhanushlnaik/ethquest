@@ -38,7 +38,7 @@ async function Rooms() {
           <form action={hostCreateSession.bind(null, q.slug)} className="mt-4">
             <button className="px-btn px-btn--gold">Open a new room ▶</button>
           </form>
-          <p className="mt-3 text-base text-muted">Put the room on the projector; players join on their phones at <b>/live</b>. Independent of ETHQuest XP and the hoodie leaderboard.</p>
+          <p className="mt-3 text-base text-muted">Put the room on the projector; players join on their phones at <b>/live</b>. Independent of ETHQuest XP and the Hall of Fame.</p>
         </section>
       ))}
       <section className="px-panel p-5">

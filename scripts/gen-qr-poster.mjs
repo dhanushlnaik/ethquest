@@ -120,7 +120,7 @@ const cardW = 640, cardH = Math.min(860, H - 120), cardX = W - cardW - 150, card
 const qrSize = Math.min(470, cardH - 330), qrX = cardX + Math.round((cardW - qrSize) / 2), qrY = cardY + 165;
 const layers = [{ input: await parchment(cardW, cardH), left: cardX, top: cardY }];
 
-const head = textSvg("SCAN FOR FREE SWAG!", 5, "#9a2a1b", "#f7ecd2");
+const head = textSvg("SCAN TO PLAY!", 6, "#9a2a1b", "#f7ecd2");
 layers.push({ input: head.svg, left: cardX + Math.round((cardW - head.width) / 2), top: cardY + 70 });
 
 // QR slot: cream square with a dashed pixel border; filled with a real QR when a URL is given.
@@ -136,7 +136,7 @@ if (url) {
   const ph = textSvg("QR HERE", 6, "#cdb48c", "#fff8e8");
   layers.push({ input: ph.svg, left: qrX + Math.round((qrSize - ph.width) / 2), top: qrY + Math.round((qrSize - ph.height) / 2) });
 }
-for (const [i, line] of ["PLAY IF YOU WANT", "WIN THE HOODIE"].entries()) {
+for (const [i, line] of ["COLLECT EIP CARDS", "BATTLE YOUR FRIENDS"].entries()) {
   const t = textSvg(line, 4, i ? "#9a5a00" : "#2a1d12", "#f7ecd2");
   layers.push({ input: t.svg, left: cardX + Math.round((cardW - t.width) / 2), top: qrY + qrSize + 30 + i * 48 });
 }
@@ -148,7 +148,7 @@ const title = textSvg("ETHQUEST", 10, "#f5c542");
 layers.push({ input: title.svg, left: 70 + 32 * 6 + 30, top: 75 });
 const by = textSvg("BY EIPSINSIGHT", 5, "#fff3d6");
 layers.push({ input: by.svg, left: 70 + 32 * 6 + 40, top: 75 + title.height + 4 });
-const foot = textSvg("EIPSINSIGHT IMPACT BOOTH · DEVCON 8 · @EIPSINSIGHT", 4, "#fff3d6");
+const foot = textSvg("PLAY · COLLECT · BATTLE · @EIPSINSIGHT", 4, "#fff3d6");
 layers.push({ input: foot.svg, left: 70, top: H - foot.height - 50 });
 
 const name = url ? "qr-poster.png" : "qr-poster-blank.png";

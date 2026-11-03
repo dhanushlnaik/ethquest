@@ -9,9 +9,9 @@ export const DIFFICULTIES: Record<DifficultyKey, { label: string; short: string;
 };
 
 /**
- * Leaderboard XP comes from two places, both bounded so nobody can win the hoodie just by playing the most:
+ * Leaderboard XP comes from two places, both bounded so the board rewards skill, not grinding:
  *  - Ranked games: each run scores base × accuracy + perfect/speed bonuses. Only your BEST run per game counts
- *    (improvements are credited as the difference), and ranked runs per game per day are capped.
+ *    (improvements are credited as the difference), so replays can raise your score but never farm it.
  *  - Side quests: a small one-time reward per activity. Replays earn nothing.
  */
 export const RANKED_GAMES = {
@@ -48,28 +48,7 @@ export const DEFAULT_XP = {
 };
 export type XPConfig = typeof DEFAULT_XP;
 
-/** Booth event rules. Stored in Setting "event"; booth admins can edit them. */
-export const DEFAULT_EVENT = {
-  tshirtXp: 100,
-  rankedRunsPerDay: 3,
-  /** Scoring stops at this moment; the overall leaderboard then decides the hoodie. ISO with offset. */
-  leaderboardClosesAt: "2026-11-04T16:00:00+05:30",
-  announceAt: "2026-11-04T16:30:00+05:30",
-  eventDays: "November 3–4",
-  /** Set by booth admins after any sudden-death tie-break. */
-  championPlayerId: "" as string,
-};
-export type EventConfig = typeof DEFAULT_EVENT;
 export const EVENT_TZ = "Asia/Kolkata";
-
-export const REWARD_TIERS = {
-  welcome: { tier: 1, name: "The Drop", kicker: "Free unlock" },
-  tshirt: { tier: 2, name: "The Playground", kicker: "Optional participation" },
-  hoodie: { tier: 3, name: "The Protocol Champion", kicker: "Grand prize" },
-} as const;
-export const WELCOME_REWARD = "welcome-pack";
-export const TSHIRT_REWARD = "tshirt";
-export const HOODIE_REWARD = "hoodie";
 
 export const LEVELS = [
   { level: 1, name: "Deckhand", xp: 0 },

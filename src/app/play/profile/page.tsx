@@ -8,6 +8,7 @@ import { levelFor, LEVELS, DIFFICULTIES } from "@/lib/config/game";
 import { Badge, Bar, Panel, PixelIcon, PixelLoader, Sprite, Tag } from "@/components/pixel";
 import { NeedPlayer } from "@/components/need-player";
 import { ProfileEditor, RecoveryCode } from "@/components/profile-editor";
+import { SavePasskeyButton } from "@/components/passkey";
 
 export const metadata = { title: "Your Profile" };
 
@@ -28,13 +29,14 @@ export default function ProfilePage() {
 async function Profile() {
   const player = await getPlayer();
   if (!player) return <NeedPlayer next="/play/profile" />;
-  const [achievements, mine, ledger, rank, done, pathways] = await Promise.all([
+  const [achievements, mine, ledger, rank, done, pathways, passkeys] = await Promise.all([
     db.achievement.findMany({ orderBy: { sortOrder: "asc" } }),
     db.playerAchievement.findMany({ where: { playerId: player.id } }),
     db.xPTransaction.findMany({ where: { playerId: player.id }, orderBy: { createdAt: "desc" }, take: 12 }),
     rankOf(player.id, player.xpTotal),
     completedMissions(player.id),
     db.playerPathway.findMany({ where: { playerId: player.id }, orderBy: { createdAt: "desc" }, take: 3, include: { pathway: true } }),
+    db.passkey.findMany({ where: { playerId: player.id }, select: { createdAt: true, lastUsedAt: true } }),
   ]);
   const unlocked = new Map(mine.map((m) => [m.achievementId, m]));
   const lvl = levelFor(player.xpTotal);
@@ -130,6 +132,16 @@ async function Profile() {
             </li>
           ))}
         </ol>
+      </section>
+
+      <section className="px-panel px-panel--green p-4">
+        <h2 className="font-pixel text-xl">Profile login</h2>
+        {passkeys.length ? (
+          <p className="mt-1 text-muted">Saved with {passkeys.length} passkey{passkeys.length === 1 ? "" : "s"}. Log in on any device from the home screen. You can add another (e.g. your laptop):</p>
+        ) : (
+          <p className="mt-1 text-muted">Not saved yet. Add a passkey to keep your cards and XP if you switch phones or clear your browser.</p>
+        )}
+        <div className="mt-3"><SavePasskeyButton label={passkeys.length ? "Add another passkey" : "Save with passkey"} /></div>
       </section>
 
       <RecoveryCode />

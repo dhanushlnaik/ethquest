@@ -3,8 +3,6 @@ import { connection } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import QRCode from "qrcode";
 import { dailyTop, eventStats, topPlayers } from "@/lib/server/leaderboard";
-import { getEventConfig, scoringOpen } from "@/lib/server/event";
-import { Countdown } from "@/components/countdown";
 import { KioskMusic } from "@/components/kiosk-music";
 import { LEVELS } from "@/lib/config/game";
 import { Panel, PixelIcon, Sprite, Treasure } from "@/components/pixel";
@@ -32,26 +30,22 @@ async function Board({ searchParams }: { searchParams: PageProps<"/kiosk/leaderb
   const { token } = await searchParams;
   if (!tokenOk(token)) return <p className="font-pixel p-10 text-center text-xl">Kiosk link invalid.</p>;
   await connection();
-  const [players, today, stats, cfg, qr] = await Promise.all([
+  const [players, today, stats, qr] = await Promise.all([
     topPlayers(8),
     dailyTop(5),
     eventStats(),
-    getEventConfig(),
     QRCode.toString(`${SITE_URL}/play`, { type: "svg", margin: 1, color: { dark: "#2a1d12", light: "#fff8e8" } }),
   ]);
-  const open = scoringOpen(cfg);
   return (
     <main className="grid min-h-dvh grid-cols-1 gap-8 p-8 lg:grid-cols-[1fr_400px]">
       <AutoRefresh seconds={10} />
       <section>
         <div className="flex items-center gap-5">
-          <Treasure name="hoodie" size={96} className="anim-float anim-glow" />
+          <Treasure name="crown" size={96} className="anim-float anim-glow" />
           <div>
-            <p className="font-arcade text-sm text-gold">Protocol Champions · {cfg.eventDays} · EIPsInsight Impact Booth</p>
-            <h1 className="title-outline font-pixel text-6xl">ONE HOODIE. ONE CHAMPION.</h1>
-            <p className="font-pixel mt-1 text-xl">
-              {open ? <>Scoring closes in <Countdown to={cfg.leaderboardClosesAt} className="text-gold" /></> : "Scoring closed · winner announced at the booth"}
-            </p>
+            <p className="font-arcade text-sm text-gold">Hall of Fame · EIPsInsight</p>
+            <h1 className="title-outline font-pixel text-6xl">PROTOCOL LEGENDS</h1>
+            <p className="font-pixel mt-1 text-xl">Beat your best in the ranked quests. Collect every EIP card.</p>
           </div>
         </div>
         <ol className="mt-8 space-y-3">
@@ -62,7 +56,7 @@ async function Board({ searchParams }: { searchParams: PageProps<"/kiosk/leaderb
                 <Sprite name={p.avatar} size={p.rank <= 3 ? 72 : 56} className={p.rank === 1 ? "anim-bob" : ""} />
                 <span className="min-w-0 flex-1">
                   <span className="font-pixel block truncate text-3xl">{p.nickname}</span>
-                  <span className="font-arcade text-xs text-muted">LV{p.level} {LEVELS[p.level - 1]?.name}{p.tied ? " · TIED" : ""}</span>
+                  <span className="font-arcade text-xs text-muted">LV{p.level} {LEVELS[p.level - 1]?.name}</span>
                 </span>
                 {p.rank === 1 && <PixelIcon name="crown" size={40} />}
                 <span className="font-arcade text-3xl text-gold">{p.xp} XP</span>
@@ -75,9 +69,9 @@ async function Board({ searchParams }: { searchParams: PageProps<"/kiosk/leaderb
       <aside className="flex flex-col items-center gap-5 text-center">
         <Logo compact />
         <Panel tone="gold" className="w-full p-5">
-          <p className="font-arcade text-xs text-gold">Scan for free swag</p>
+          <p className="font-arcade text-xs text-gold">Scan to play</p>
           <div className="mx-auto mt-3 aspect-square w-56 bg-[#fff8e8] p-2 [&_svg]:h-full [&_svg]:w-full" dangerouslySetInnerHTML={{ __html: qr }} />
-          <p className="font-pixel mt-3 text-lg leading-snug">Scan. Get your swag. Play if you want. Climb the leaderboard. Take home the hoodie.</p>
+          <p className="font-pixel mt-3 text-lg leading-snug">Play quick EIP quests. Collect pixel EIP cards. Battle your friends.</p>
         </Panel>
         <Panel variant="raised" className="w-full p-4 text-left">
           <p className="font-arcade text-xs text-gold">Today&apos;s top hunters</p>
@@ -93,7 +87,7 @@ async function Board({ searchParams }: { searchParams: PageProps<"/kiosk/leaderb
           </ol>
         </Panel>
         <div className="grid w-full grid-cols-3 gap-2">
-          {[["PLAYERS", stats.players], ["XP EARNED", stats.xp], ["SWAG GIVEN", stats.redeemed]].map(([l, v]) => (
+          {[["PLAYERS", stats.players], ["XP EARNED", stats.xp], ["GAMES PLAYED", stats.games]].map(([l, v]) => (
             <Panel key={String(l)} variant="raised" className="p-3">
               <p className="font-arcade text-[11px] text-muted">{l}</p>
               <p className="font-pixel text-2xl text-gold">{v}</p>

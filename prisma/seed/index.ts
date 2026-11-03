@@ -5,7 +5,7 @@ import { PrismaPg } from "@prisma/adapter-pg";
 import { PrismaClient, type Prisma } from "../../src/generated/prisma/client";
 import { scryptSync, randomBytes } from "node:crypto";
 import { trivia, spotFake, matchSets } from "./questions";
-import { upgrades, hunts, plainEnglish, pathways, achievements, rewards, retiredRewards, missions, upgradeUrl, UPGRADE_SOURCE } from "./world";
+import { upgrades, hunts, plainEnglish, pathways, achievements, rewards, retiredRewards, retiredAchievements, missions, upgradeUrl, UPGRADE_SOURCE } from "./world";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 3 });
 // Where EIPsInsight's tables live (see src/lib/server/db.ts).
@@ -129,6 +129,7 @@ async function main() {
     });
   }
   await db.reward.updateMany({ where: { slug: { in: retiredRewards } }, data: { isActive: false } });
+  await db.achievement.deleteMany({ where: { slug: { in: retiredAchievements } } });
 
   for (const m of missions) {
     const data = { world: m.world, kind: m.kind, title: m.title, blurb: m.blurb, xpComplete: m.xpComplete, xpPerCorrect: m.xpPerCorrect, sortOrder: m.sortOrder, config: json(m.config) };

@@ -9,7 +9,7 @@ const ITEMS: { href: string; label: string; icon: IconName }[] = [
   { href: "/play", label: "Home", icon: "house" },
   { href: "/play/worlds", label: "Quests", icon: "map" },
   { href: "/play/leaderboard", label: "Ranks", icon: "trophy" },
-  { href: "/play/rewards", label: "Rewards", icon: "gift" },
+  { href: "/play/cards", label: "Cards", icon: "gift" },
   { href: "/play/profile", label: "Me", icon: "user" },
 ];
 

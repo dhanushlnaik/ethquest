@@ -1,7 +1,7 @@
 import "server-only";
 import { db, type Tx } from "./db";
 import { DEFAULT_XP, LEVELS, levelFor, type XPConfig } from "@/lib/config/game";
-import { getEventConfig, scoringOpen } from "./event";
+import { grantPack } from "./cards";
 
 // Small in-process caches: XP settings and the achievement catalog change rarely (admin edits bust them).
 let xpCache: { at: number; value: XPConfig } | null = null;
@@ -37,9 +37,11 @@ export type Gains = {
   achievements: { slug: string; name: string; icon: string; description: string }[];
   /** XP that was not awarded because of anti-farming caps. */
   capped: boolean;
+  /** Booster packs earned by this action. */
+  packs: number;
 };
 
-export const emptyGains = (): Gains => ({ xp: 0, levelUp: null, achievements: [], capped: false });
+export const emptyGains = (): Gains => ({ xp: 0, levelUp: null, achievements: [], capped: false, packs: 0 });
 
 /**
  * Appends to the XP ledger. The (playerId, idempotencyKey) unique index makes every award
@@ -55,8 +57,6 @@ export async function awardXP(
   opts: { attemptId?: string; createdBy?: string; dailyCapKeyPrefix?: string; dailyCap?: number } = {},
 ): Promise<{ awarded: number; capped: boolean }> {
   if (amount === 0) return { awarded: 0, capped: false };
-  // After the leaderboard closes, only booth staff can still adjust XP.
-  if (amount > 0 && !opts.createdBy && !scoringOpen(await getEventConfig())) return { awarded: 0, capped: true };
   let grant = amount;
   let capped = false;
   if (opts.dailyCapKeyPrefix && opts.dailyCap != null && amount > 0) {
@@ -104,7 +104,10 @@ export async function settleLevel(tx: Tx, playerId: string, gains: Gains) {
   const lvl = levelFor(player.xpTotal);
   if (lvl.level !== player.level) {
     await tx.player.update({ where: { id: playerId }, data: { level: lvl.level } });
-    if (lvl.level > player.level) gains.levelUp = { level: lvl.level, name: lvl.name };
+    if (lvl.level > player.level) {
+      gains.levelUp = { level: lvl.level, name: lvl.name };
+      if (await grantPack(tx, playerId, `level:${lvl.level}`, `Reached level ${lvl.level}`)) gains.packs++;
+    }
   }
   if (lvl.level >= LEVELS[LEVELS.length - 1].level) await grantAchievement(tx, playerId, "champion", gains);
 }

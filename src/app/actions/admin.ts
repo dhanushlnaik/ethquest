@@ -9,11 +9,8 @@ import { createAdminSession, destroyAdminSession, requireAdmin } from "@/lib/ser
 import { hashPassword, verifyPassword } from "@/lib/server/crypto";
 import { rateLimit } from "@/lib/server/rate-limit";
 import { audit } from "@/lib/server/telemetry";
-import { previewClaim, redeemClaim } from "@/lib/server/rewards";
 import { awardXP, bustProgressionCaches, grantAchievement, settleLevel, emptyGains } from "@/lib/server/progression";
 import { UserError } from "@/lib/server/action";
-import { bustEventCache, getEventConfig } from "@/lib/server/event";
-import type { EventConfig } from "@/lib/config/game";
 import type { Prisma } from "@/generated/prisma/client";
 
 type Result<T = null> = { ok: true; data: T } | { ok: false; error: string };
@@ -51,42 +48,6 @@ export async function adminLogin(_prev: Result | null, formData: FormData): Prom
 export async function adminLogout() {
   await destroyAdminSession();
   redirect("/booth-admin/login");
-}
-
-// ---------------- Redemption ----------------
-
-export async function lookupClaim(tokenOrCode: string) {
-  return run(async () => {
-    const admin = await requireAdmin("VOLUNTEER");
-    if (!(await rateLimit(`scan:${admin.id}`, 60, 60))) throw new UserError("Scanning too fast. Wait a moment.");
-    const v = z.string().min(4).max(200).parse(tokenOrCode);
-    return previewClaim(v);
-  });
-}
-
-export async function confirmRedeem(claimId: string) {
-  return run(async () => {
-    const admin = await requireAdmin("VOLUNTEER");
-    try {
-      const claim = await redeemClaim(z.string().max(40).parse(claimId), admin.id);
-      refresh();
-      return { claimId: claim.id };
-    } catch (err) {
-      await audit("admin", admin.id, "reward.redeem_failed", claimId, { reason: err instanceof Error ? err.message : "unknown" });
-      throw err;
-    }
-  });
-}
-
-export async function voidClaim(claimId: string) {
-  return run(async () => {
-    const admin = await requireAdmin("ADMIN");
-    const res = await db.rewardClaim.updateMany({ where: { id: claimId, status: "ISSUED" }, data: { status: "VOID" } });
-    if (res.count !== 1) throw new UserError("Only unredeemed claims can be voided.");
-    await audit("admin", admin.id, "reward.void", claimId);
-    refresh();
-    return null;
-  });
 }
 
 // ---------------- Players ----------------
@@ -147,51 +108,6 @@ export async function renamePlayer(playerId: string, nickname: string) {
 }
 
 // ---------------- Content ----------------
-
-const rewardSchema = z.object({
-  id: z.string(),
-  name: z.string().min(2).max(60),
-  description: z.string().max(200),
-  xpRequired: z.coerce.number().int().min(0).max(10000),
-  stockDelta: z.coerce.number().int().min(-10000).max(10000),
-  isActive: z.coerce.boolean(),
-});
-
-export async function updateReward(_prev: Result | null, formData: FormData): Promise<Result> {
-  return run(async () => {
-    const admin = await requireAdmin("ADMIN");
-    const data = rewardSchema.parse({ ...Object.fromEntries(formData), isActive: formData.get("isActive") === "on" });
-    await db.$transaction(async (tx) => {
-      const reward = await tx.reward.findUniqueOrThrow({ where: { id: data.id } });
-      if (reward.stock + data.stockDelta < 0) throw new UserError("Stock can't go below zero.");
-      await tx.reward.update({
-        where: { id: data.id },
-        data: {
-          name: data.name, description: data.description, xpRequired: data.xpRequired, isActive: data.isActive,
-          stock: { increment: data.stockDelta }, initialStock: data.stockDelta > 0 ? { increment: data.stockDelta } : undefined,
-        },
-      });
-    });
-    await audit("admin", admin.id, "reward.update", data.id, data);
-    refresh();
-    return null;
-  });
-}
-
-export async function createReward(_prev: Result | null, formData: FormData): Promise<Result> {
-  return run(async () => {
-    const admin = await requireAdmin("ADMIN");
-    const d = z.object({
-      slug: z.string().regex(/^[a-z0-9-]{2,40}$/), name: z.string().min(2).max(60), description: z.string().max(200),
-      icon: z.enum(["sticker-pack", "tshirt", "nft-card", "pin", "medal", "trophy", "loot-box"]),
-      xpRequired: z.coerce.number().int().min(0), stock: z.coerce.number().int().min(0),
-    }).parse(Object.fromEntries(formData));
-    await db.reward.create({ data: { ...d, initialStock: d.stock, sortOrder: 99 } });
-    await audit("admin", admin.id, "reward.create", d.slug, d);
-    refresh();
-    return null;
-  });
-}
 
 export async function toggleQuestion(id: string, isActive: boolean) {
   return run(async () => {
@@ -343,45 +259,6 @@ export async function setStaffActive(id: string, isActive: boolean) {
     if (!isActive) await db.adminSession.deleteMany({ where: { adminId: id } });
     await audit("admin", admin.id, isActive ? "staff.activate" : "staff.deactivate", id);
     refresh();
-    return null;
-  });
-}
-
-// ---------------- Event rules + hoodie champion ----------------
-
-const eventSchema = z.object({
-  tshirtXp: z.coerce.number().int().min(0).max(1000),
-  rankedRunsPerDay: z.coerce.number().int().min(1).max(20),
-  leaderboardClosesAt: z.string().refine((s) => !Number.isNaN(Date.parse(s)), "Invalid close time"),
-  announceAt: z.string().refine((s) => !Number.isNaN(Date.parse(s)), "Invalid announce time"),
-  eventDays: z.string().min(1).max(60),
-});
-
-async function writeEvent(patch: Partial<EventConfig>, adminId: string, action: string) {
-  const value = { ...(await getEventConfig()), ...patch };
-  await db.setting.upsert({ where: { key: "event" }, create: { key: "event", value, updatedBy: adminId }, update: { value, updatedBy: adminId } });
-  bustEventCache();
-  await audit("admin", adminId, action, "event", patch);
-  refresh();
-}
-
-export async function saveEventConfig(_prev: Result | null, formData: FormData): Promise<Result> {
-  return run(async () => {
-    const admin = await requireAdmin("OWNER");
-    const parsed = eventSchema.safeParse(Object.fromEntries(formData));
-    if (!parsed.success) throw new UserError(parsed.error.issues[0]?.message ?? "Check the fields.");
-    await writeEvent(parsed.data, admin.id, "settings.event");
-    return null;
-  });
-}
-
-/** Declares (or clears) the hoodie winner after any sudden-death tie-break. Only they can then claim the hoodie. */
-export async function declareChampion(playerId: string) {
-  return run(async () => {
-    const admin = await requireAdmin("ADMIN");
-    const id = z.string().max(40).parse(playerId);
-    if (id && !(await db.player.findUnique({ where: { id } }))) throw new UserError("Player not found.");
-    await writeEvent({ championPlayerId: id }, admin.id, id ? "event.champion" : "event.champion_cleared");
     return null;
   });
 }

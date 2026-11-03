@@ -90,6 +90,18 @@ async function data() {
     const n = await copyRows("ethquest", "ethquest", t, cols);
     console.log(`  ethquest.${t}: ${n} rows`);
   }
+  // Copied rows keep their ids: move every serial/identity counter past the copied maximum.
+  const { rows: seqs } = await dst.query(
+    `SELECT s.relname AS seq, t.relname AS tbl, a.attname AS col FROM pg_class s
+       JOIN pg_depend d ON d.objid = s.oid JOIN pg_class t ON t.oid = d.refobjid
+       JOIN pg_attribute a ON a.attrelid = t.oid AND a.attnum = d.refobjsubid
+       JOIN pg_namespace n ON n.oid = s.relnamespace
+      WHERE s.relkind = 'S' AND n.nspname = 'ethquest'`,
+  );
+  for (const r of seqs) {
+    await dst.query(`SELECT setval('ethquest.${q(r.seq)}', COALESCE((SELECT MAX(${q(r.col)}) FROM ethquest.${q(r.tbl)}), 0) + 1, false)`);
+  }
+  console.log(`  advanced ${seqs.length} id sequences`);
   // Row-count check
   let ok = true;
   for (const t of order) {

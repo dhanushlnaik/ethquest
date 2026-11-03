@@ -6,7 +6,8 @@ import { requirePlayer } from "@/lib/server/session";
 import { assertRateLimit } from "@/lib/server/rate-limit";
 import { awardXP, grantAchievement, withProgress } from "@/lib/server/progression";
 import { buildRounds, grade, maxScoreOf, type AttemptState } from "@/lib/server/games";
-import { getEventConfig, rankedBest, rankedRunsToday, scoringOpen } from "@/lib/server/event";
+import { rankedBest } from "@/lib/server/event";
+import { dayKey, grantPack } from "@/lib/server/cards";
 import { track } from "@/lib/server/telemetry";
 import { isRanked, RANKED_GAMES, scoreRankedRun } from "@/lib/config/game";
 import { safeAction, UserError } from "@/lib/server/action";
@@ -32,23 +33,17 @@ export async function startMission(slug: string) {
 
     let ranked: RankedInfo | undefined;
     if (isRanked(slug)) {
-      const cfg = await getEventConfig();
-      const [used, best] = await Promise.all([rankedRunsToday(player.id, mission.id), rankedBest(db, player.id, slug)]);
       const g = RANKED_GAMES[slug];
-      const closed = !scoringOpen(cfg);
-      // A refresh before answering anything resumes the same draw instead of burning a run.
+      ranked = { best: await rankedBest(db, player.id, slug), max: g.base + g.perfect + g.speed };
+      // A refresh before answering anything resumes the same draw (and its clock) instead of dealing new questions.
       const open = recent.find((a) => a.status === "ACTIVE" && Date.now() - a.startedAt.getTime() < 15 * 60_000);
       const openState = open?.state as unknown as AttemptState | undefined;
       if (open && openState && openState.answers.every((a) => a === null)) {
-        const runsLeft = Math.max(0, cfg.rankedRunsPerDay - used);
         return {
           attemptId: open.id, mission: { slug, title: mission.title, world: mission.world }, difficulty: player.difficulty,
-          rounds: openState.rounds.map((r) => r.pub), timerSeconds,
-          ranked: { counts: !!openState.ranked, runsLeft, runsPerDay: cfg.rankedRunsPerDay, best, max: g.base + g.perfect + g.speed, closed },
+          rounds: openState.rounds.map((r) => r.pub), timerSeconds, ranked,
         };
       }
-      const counts = !closed && used < cfg.rankedRunsPerDay;
-      ranked = { counts, runsLeft: Math.max(0, cfg.rankedRunsPerDay - used - (counts ? 1 : 0)), runsPerDay: cfg.rankedRunsPerDay, best, max: g.base + g.perfect + g.speed, closed };
     }
 
     // Rotate questions: skip anything this player saw in recent runs.
@@ -60,11 +55,11 @@ export async function startMission(slug: string) {
 
     // Abandon any open attempt for this mission so only one round set is live at a time.
     await db.missionAttempt.updateMany({ where: { playerId: player.id, missionId: mission.id, status: "ACTIVE" }, data: { status: "ABANDONED" } });
-    const state: AttemptState = { rounds, answers: rounds.map(() => null), hints: rounds.map(() => false), startedAt: Date.now(), ranked: ranked?.counts ?? false };
+    const state: AttemptState = { rounds, answers: rounds.map(() => null), hints: rounds.map(() => false), startedAt: Date.now(), ranked: !!ranked };
     const attempt = await db.missionAttempt.create({
       data: { playerId: player.id, missionId: mission.id, difficulty: player.difficulty, state: state as unknown as Prisma.InputJsonValue, maxScore: maxScoreOf(rounds) },
     });
-    await track("mission_start", player.id, { mission: slug, difficulty: player.difficulty, ranked: ranked?.counts ?? false });
+    await track("mission_start", player.id, { mission: slug, difficulty: player.difficulty, ranked: !!ranked });
     return {
       attemptId: attempt.id,
       mission: { slug, title: mission.title, world: mission.world },
@@ -156,11 +151,14 @@ export async function submitAnswer(input: z.infer<typeof answerSchema>) {
             best += r.awarded;
             gains.xp += r.awarded;
           }
-          summary.ranked = { ...run, best, improvedBy, counts: !!state.ranked, seconds: Math.round(seconds) };
+          summary.ranked = { ...run, best, improvedBy, seconds: Math.round(seconds) };
+          // One booster pack per ranked game per day.
+          if (await grantPack(tx, player.id, `run:${slug}:${dayKey()}`, `${attempt.mission.title} run`)) gains.packs++;
         } else {
           // Side quest: a one-time reward. Replays are for fun only.
           const r = await awardXP(tx, player.id, attempt.mission.xpComplete, `${slug}:complete`, `sq:${slug}`, { attemptId });
           gains.xp += r.awarded;
+          if (await grantPack(tx, player.id, `sq:${slug}`, `${attempt.mission.title} cleared`)) gains.packs++;
         }
         if (COMPLETION_ACHIEVEMENTS[slug]) await grantAchievement(tx, player.id, COMPLETION_ACHIEVEMENTS[slug], gains);
         if (attempt.difficulty === "NERD") await grantAchievement(tx, player.id, "protocol-nerd", gains);

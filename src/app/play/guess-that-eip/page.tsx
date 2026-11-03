@@ -8,7 +8,7 @@ export default function Page() {
       slug="guess-that-eip"
       path="/play/guess-that-eip"
       title="Guess That EIP"
-      kicker="RANKED QUEST · COUNTS FOR THE HOODIE"
+      kicker="RANKED QUEST · BEST RUN COUNTS"
       blurb="Five questions. Use a hint if you're stuck. Every answer comes with the story behind it."
       back={{ href: "/play", label: "Quest map" }}
       character="builder"

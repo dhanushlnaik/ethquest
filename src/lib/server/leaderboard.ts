@@ -5,7 +5,7 @@ import { eventDayStart } from "./event";
 
 export type BoardRow = { id: string; nickname: string; avatar: string; level: number; xp: number; rank: number; tied: boolean };
 
-/** Competition ranking: equal XP shares a rank (1, 2, 2, 4). Ties at the top go to a sudden-death question. */
+/** Competition ranking: equal XP shares a rank (1, 2, 2, 4). */
 function ranked<T extends { xp: number }>(rows: T[]): (T & { rank: number; tied: boolean })[] {
   let rank = 0;
   return rows.map((r, i) => {
@@ -15,7 +15,7 @@ function ranked<T extends { xp: number }>(rows: T[]): (T & { rank: number; tied:
   });
 }
 
-/** Overall two-day board: every valid XP counts, nothing resets. This one decides the hoodie. */
+/** All-time board: every valid XP counts, nothing resets. */
 export async function topPlayers(limit = 50): Promise<BoardRow[]> {
   const rows = await db.player.findMany({
     where: { isBanned: false, xpTotal: { gt: 0 } },
@@ -48,10 +48,10 @@ export async function rankOf(playerId: string, xp: number) {
 }
 
 export async function eventStats() {
-  const [players, xp, redeemed] = await Promise.all([
+  const [players, xp, games] = await Promise.all([
     db.player.count(),
     db.player.aggregate({ _sum: { xpTotal: true } }),
-    db.rewardClaim.count({ where: { status: "REDEEMED" } }),
+    db.missionAttempt.count({ where: { status: "COMPLETED" } }),
   ]);
-  return { players, xp: xp._sum.xpTotal ?? 0, redeemed };
+  return { players, xp: xp._sum.xpTotal ?? 0, games };
 }
