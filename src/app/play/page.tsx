@@ -78,14 +78,14 @@ async function Dashboard() {
         </Link>
       )}
 
-      <Link href="/play/daily" className={cx("px-panel flex items-center gap-4 p-4 transition-transform hover:-translate-y-0.5", !dq.answeredToday && "px-panel--gold")}>
+      <Link href="/play/daily" className={cx("px-panel flex flex-wrap items-center gap-x-4 gap-y-2 p-4 transition-transform hover:-translate-y-0.5", !dq.answeredToday && "px-panel--gold")}>
         <Flame streak={dq.streak} size="lg" />
-        <span className="min-w-0 flex-1">
+        {!dq.answeredToday && <span className="px-btn px-btn--sm shine ml-auto sm:order-last">Play ▶</span>}
+        <span className="min-w-0 basis-full sm:basis-0 sm:flex-1">
           <span className="font-arcade block text-xs text-gold">Daily EIP challenge</span>
           <span className="font-pixel block text-xl">{dq.answeredToday ? "Done for today ✓" : "Today's question is ready"}</span>
           <span className="block text-sm text-muted">{dq.answeredToday ? "Come back tomorrow to keep your streak." : `Day ${nextMilestone(dq.streak).at} of your streak unlocks ${nextMilestone(dq.streak).reward}.`}</span>
         </span>
-        {!dq.answeredToday && <span className="px-btn px-btn--sm shine">Play ▶</span>}
       </Link>
 
       <ChangeStrip changes={news} title="Your cards leveled up!" subtitle="The real proposals behind these cards just changed status on EIPsInsight." dismissible />
@@ -153,7 +153,7 @@ async function Dashboard() {
 
       {/* BATTLE */}
       <Link href="/play/battle" className="px-panel px-panel--purple flex items-center gap-4 p-4 transition-transform hover:-translate-y-0.5">
-        <span className="flex -space-x-6">
+        <span className="hidden -space-x-6 sm:flex">
           {recent.slice(0, 3).map((r) => { const c = cat.byNumber.get(r.number); return c ? <span key={r.number} className="origin-bottom-left scale-[0.5]" style={{ width: 66, height: 105 }}><PixelCard card={toView(c)} size="sm" /></span> : null; })}
         </span>
         <span className="min-w-0 flex-1">

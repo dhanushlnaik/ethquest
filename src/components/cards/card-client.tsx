@@ -67,7 +67,7 @@ export function PackOpener({ packs, shareBase, nickname }: { packs: { id: string
       <Portal>
         <AnimatePresence>
           {reveal && (
-            <motion.div className="fixed inset-0 z-[70] flex flex-col items-center justify-center gap-6 overflow-y-auto bg-[rgba(20,24,28,0.9)] p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
+            <motion.div className="fixed inset-0 z-[70] flex flex-col items-center gap-5 overflow-y-auto bg-[rgba(20,24,28,0.9)] px-3 py-6 sm:justify-center sm:p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }}>
               <p className="font-arcade text-sm text-[var(--gold)]">{done ? "Pack opened!" : "Tap a card to flip it"}</p>
               <div className="flex flex-wrap justify-center gap-3">
                 {reveal.cards.map((c, i) => (
@@ -82,11 +82,11 @@ export function PackOpener({ packs, shareBase, nickname }: { packs: { id: string
                   >
                     {i < reveal.flipped ? (
                       <motion.div initial={{ rotateY: 90 }} animate={{ rotateY: 0 }} transition={{ duration: 0.25 }}>
-                        <PixelCard card={c} size="md" />
+                        <PixelCard card={c} size="smd" />
                         {(c.rarity === "EPIC" || c.rarity === "LEGENDARY") && <Burst icons={["star", "coin", "diamond"]} count={14} />}
                       </motion.div>
                     ) : (
-                      <div className={cx(i === reveal.flipped && "anim-bob")}><CardBack size="md" label={i === reveal.flipped ? "TAP" : "EIP"} /></div>
+                      <div className={cx(i === reveal.flipped && "anim-bob")}><CardBack size="smd" label={i === reveal.flipped ? "TAP" : "EIP"} /></div>
                     )}
                   </motion.button>
                 ))}

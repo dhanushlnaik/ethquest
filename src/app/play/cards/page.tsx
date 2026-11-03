@@ -44,8 +44,8 @@ async function Collection() {
     <div className="space-y-6">
       <PackOpener packs={packs} shareBase={SITE_URL} nickname={player.nickname} />
 
-      <section className="grid gap-4 sm:grid-cols-[1fr_auto]">
-        <div className="px-panel p-4">
+      <section className="grid grid-cols-1 gap-4 sm:grid-cols-[1fr_auto]">
+        <div className="px-panel min-w-0 p-4">
           <div className="flex items-baseline justify-between gap-3">
             <p className="font-pixel text-2xl">{col.owned}<span className="text-base text-muted"> / {col.total} cards</span></p>
             <span className="font-arcade text-xs text-muted">{col.duplicates} duplicates</span>
@@ -54,8 +54,11 @@ async function Collection() {
           <ul className="mt-3 grid grid-cols-5 gap-2 text-center">
             {col.byRarity.slice().reverse().map((r) => (
               <li key={r.rarity}>
-                <p className="font-arcade text-[10px]" style={{ color: RARITY_STYLE[r.rarity].text }}>{RARITY_STYLE[r.rarity].label}</p>
-                <p className="font-pixel">{r.owned}/{r.total}</p>
+                <p className="font-arcade text-[9px] sm:text-[10px]" style={{ color: RARITY_STYLE[r.rarity].text }}>
+                  <span className="sm:hidden">{RARITY_STYLE[r.rarity].label.slice(0, 3)}</span>
+                  <span className="hidden sm:inline">{RARITY_STYLE[r.rarity].label}</span>
+                </p>
+                <p className="font-pixel text-xs sm:text-base">{r.owned}/{r.total}</p>
               </li>
             ))}
           </ul>
@@ -71,9 +74,9 @@ async function Collection() {
 
       <section>
         <h2 className="font-pixel mb-2 text-2xl [text-shadow:0_2px_0_rgba(20,14,8,0.7)]">Sets</h2>
-        <ul className="grid gap-3 md:grid-cols-2">
+        <ul className="grid grid-cols-1 gap-3 md:grid-cols-2">
           {col.sets.map((s) => (
-            <li key={s.slug} className={cx("px-panel p-3", s.complete && "px-panel--gold")}>
+            <li key={s.slug} className={cx("px-panel min-w-0 p-3", s.complete && "px-panel--gold")}>
               <div className="flex items-baseline justify-between gap-2">
                 <p className="font-pixel text-lg">{s.complete && "★ "}{s.name}</p>
                 <span className="font-arcade text-xs text-gold">{s.have}/{s.members.length}</span>

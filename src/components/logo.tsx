@@ -19,7 +19,7 @@ export function BrandMark({ size = 48, className }: { size?: number; className?:
 /** Gold pixel "ETHQuest" wordmark with a dark outline; the large size bobs letter by letter. */
 export function Wordmark({ className, size = "lg" }: { className?: string; size?: "sm" | "md" | "lg" }) {
   const text = "ETHQuest";
-  const fs = size === "lg" ? "text-[3.2rem] sm:text-[5rem]" : size === "md" ? "text-4xl" : "text-2xl";
+  const fs = size === "lg" ? "text-[2.1rem] min-[400px]:text-[2.6rem] sm:text-[5rem]" : size === "md" ? "text-3xl sm:text-4xl" : "text-2xl";
   const stroke = size === "sm" ? 4 : 8;
   return (
     <span className={cx("font-pixel inline-flex select-none font-bold leading-none", fs, className)} aria-label="ETHQuest">
@@ -48,7 +48,7 @@ export function Logo({ className, compact }: { className?: string; compact?: boo
   return (
     <h1 className={cx("flex select-none flex-col items-center", className)} aria-label="ETHQuest by EIPsInsight: The Protocol Playground">
       <span className="flex items-center gap-2 sm:gap-4">
-        <BrandMark size={compact ? 56 : 92} className="anim-float drop-shadow-[0_5px_0_rgba(20,14,8,0.5)]" />
+        <BrandMark size={compact ? 56 : 92} className={`anim-float drop-shadow-[0_5px_0_rgba(20,14,8,0.5)] ${compact ? "" : "h-14 w-14 sm:h-[92px] sm:w-[92px]"}`} />
         <Wordmark size={compact ? "md" : "lg"} />
       </span>
       <span className="px-panel font-arcade -mt-1 rotate-[-2deg] px-4 py-1 text-xs sm:text-sm">

@@ -25,16 +25,18 @@ export function DeckPicker({ cards, onConfirm, confirmLabel, pending }: { cards:
   }
   return (
     <div>
-      <div className="px-panel sticky top-[70px] z-20 mb-3 flex items-center gap-3 p-3">
-        <span className="font-arcade text-xs text-gold">Your hand</span>
-        <ol className="flex flex-1 gap-2">
+      <div className="px-panel sticky top-[70px] z-20 mb-3 flex flex-wrap items-center gap-2 p-3">
+        <span className="font-arcade hidden text-xs text-gold sm:inline">Your hand</span>
+        <ol className="flex min-w-0 flex-1 basis-full gap-2 sm:basis-0">
           {[0, 1, 2].map((i) => (
             <li key={i} className="font-arcade grid h-10 min-w-0 flex-1 place-items-center truncate border-[3px] border-dashed border-[var(--parch-edge)] px-1 text-[11px]">
-              {picked[i] ? `R${i + 1}: #${picked[i]}` : `Round ${i + 1}`}
+              {picked[i] ? `R${i + 1} · #${picked[i]}` : `R${i + 1}`}
             </li>
           ))}
         </ol>
-        <Button tone="gold" size="sm" disabled={picked.length !== 3 || pending} onClick={() => onConfirm(picked)}>{pending ? "…" : confirmLabel}</Button>
+        <Button tone="gold" size="sm" className="basis-full sm:basis-auto" disabled={picked.length !== 3 || pending} onClick={() => onConfirm(picked)}>
+          {pending ? "…" : picked.length === 3 ? confirmLabel : `Pick ${3 - picked.length} more`}
+        </Button>
       </div>
       <p className="mb-2 text-sm [text-shadow:0_1px_0_rgba(20,14,8,0.7)]">Each round compares one hidden stat (Lore, Buzz, Links or Stage). Balanced cards are safer bets.</p>
       <ul className="grid grid-cols-[repeat(auto-fill,minmax(132px,1fr))] justify-items-center gap-3">
@@ -148,7 +150,7 @@ export function BattleReplay({ battle, viewerId, shareBase }: { battle: BattleVi
           const won = lit && r.winner === key;
           return (
             <div key={c.number} className={cx("relative transition-all duration-300", lit && !won && r.winner !== "draw" && "opacity-45", won && "-translate-y-2")}>
-              {i < shown || battle.status === "DONE" ? <PixelCard card={c} size="sm" /> : <CardBack size="sm" />}
+              {i < shown || battle.status === "DONE" ? <PixelCard card={c} size="xs" /> : <CardBack size="xs" />}
               {lit && <span className={cx("font-arcade absolute -bottom-2 left-1/2 -translate-x-1/2 border-[3px] border-[var(--wood-dk)] px-2 text-sm", won ? "bg-[var(--gold)] text-ink" : "bg-[#efe2c2] text-ink")}>{r[key].value}</span>}
             </div>
           );
