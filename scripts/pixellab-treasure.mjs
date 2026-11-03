@@ -147,6 +147,26 @@ async function waitJob(jobId) {
 }
 
 async function character(name, { d, anims }) {
+  // STILL=1: one pixflux image instead of a rig (the trial caps full characters). Same prompt and palette,
+  // trimmed tight like the packed sprite sheets so all characters share a scale.
+  if (process.env.STILL) {
+    const file = `characters/${name}.png`;
+    if (state[`still:${name}`]) return console.log("skip", file);
+    const json = await api("POST", "/create-image-pixflux", {
+      description: `${CHAR}, ${d}, ${STYLE}`, image_size: { width: 64, height: 64 }, no_background: true,
+      outline: "single color black outline", shading: "medium shading", detail: "highly detailed",
+      color_image: colorImage, view: "low top-down", direction: "south",
+    });
+    const raw = Buffer.from(json.image.base64.replace(/^data:image\/\w+;base64,/, ""), "base64");
+    const trimmed = await sharp(raw).trim({ threshold: 1 }).toBuffer({ resolveWithObject: true });
+    const side = Math.max(trimmed.info.width, trimmed.info.height) + 2;
+    await sharp(trimmed.data)
+      .extend({ left: Math.floor((side - trimmed.info.width) / 2), right: Math.ceil((side - trimmed.info.width) / 2), top: side - trimmed.info.height - 1, bottom: 1, background: { r: 0, g: 0, b: 0, alpha: 0 } })
+      .png().toFile(path.join(OUT, file));
+    state[`still:${name}`] = { done: true };
+    await save();
+    return console.log("ok still", name);
+  }
   const s = (state[`char:${name}`] ??= {});
   if (!s.id) {
     const res = await api("POST", "/create-character-with-4-directions", {

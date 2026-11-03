@@ -1,6 +1,6 @@
 // ETHQuest service worker: makes the app installable and keeps pixel art + the shell available on flaky booth Wi-Fi.
 // Game actions always go to the network (XP is server-authoritative), so nothing here caches POSTs.
-const VERSION = "ethquest-v3"; // bump whenever files under /assets change
+const VERSION = "ethquest-v4"; // bump whenever files under /assets change
 const SHELL = ["/play", "/play/worlds", "/manifest.webmanifest", "/icons/icon-192.png"];
 
 self.addEventListener("install", (event) => {
