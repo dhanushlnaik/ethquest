@@ -126,8 +126,11 @@ body {
   line-height: 1.3;
   overflow-x: hidden;
 }
-/* Body copy reads better a touch larger in a CRT face. */
-.text-sm { line-height: 1.3; }
+/* VT323 is a narrow CRT face: Tailwind's two smallest sizes are too small for body copy on a phone.
+   Display/HUD text (Press Start 2P) keeps the standard scale. */
+.text-xs:not(.font-arcade):not(.font-pixel) { font-size: 0.95rem; line-height: 1.25; }
+.text-sm:not(.font-arcade):not(.font-pixel) { font-size: 1.06rem; line-height: 1.3; }
+.text-\[11px\]:not(.font-arcade):not(.font-pixel) { font-size: 0.9rem; }
 ::selection { background: var(--gold); color: var(--ink); }
 
 /* Display type: a clean pixel face. Small labels are uppercase and tracked like a game HUD. */
@@ -343,3 +346,5 @@ body {
 .anim-pop-in { animation: pop-in 520ms cubic-bezier(.3, 1.4, .5, 1) both; }
 @keyframes coin-spin { 0%, 100% { transform: scaleX(1); } 50% { transform: scaleX(0.15); } }
 .anim-coin { animation: coin-spin 1.2s ease-in-out infinite; }
+@keyframes screen-in { from { opacity: 0; transform: translateY(14px); } to { opacity: 1; transform: none; } }
+.anim-screen-in { animation: screen-in 320ms cubic-bezier(.2, 1.1, .4, 1) both; }

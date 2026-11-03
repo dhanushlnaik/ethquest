@@ -4,6 +4,8 @@ import { getPlayer } from "@/lib/server/session";
 import { PixelLoader } from "./pixel";
 import { NeedPlayer } from "./need-player";
 import { GameRunner } from "./games/runner";
+import { rankedPreview } from "@/lib/server/event";
+import { isRanked } from "@/lib/config/game";
 
 type Props = { slug: string; title: string; kicker: string; blurb?: string; back: { href: string; label: string }; path: string; character?: string; intro?: string };
 
@@ -26,7 +28,9 @@ export function GamePage(props: Props) {
 async function Gate({ slug, path, back, character, intro }: Props) {
   const player = await getPlayer();
   if (!player) return <NeedPlayer next={path} />;
-  return <GameRunner slug={slug} backHref={back.href} backLabel={back.label} character={character} intro={intro} />;
+  // Ranked games wait on a start screen, so browsing to a game never spends one of the day's runs.
+  const gate = isRanked(slug) ? await rankedPreview(player.id, slug) : undefined;
+  return <GameRunner slug={slug} backHref={back.href} backLabel={back.label} character={character} intro={intro} gate={gate} />;
 }
 
 export function PlayerGate({ path, children }: { path: string; children: (player: NonNullable<Awaited<ReturnType<typeof getPlayer>>>) => ReactNode }) {

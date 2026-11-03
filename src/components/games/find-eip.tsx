@@ -62,7 +62,7 @@ export function FindEip() {
       </form>
       <div className="no-scrollbar mt-3 flex gap-2 overflow-x-auto pb-1">
         {SUGGESTIONS.map((n) => (
-          <button key={n} onClick={() => { setValue(String(n)); search(n); }} className="font-arcade shrink-0 border-2 border-line px-3 py-2 text-xs text-muted hover:border-purple hover:text-text">
+          <button key={n} onClick={() => { setValue(String(n)); search(n); }} className="px-panel px-panel--raised font-arcade shrink-0 px-3 py-2 text-xs transition-transform hover:-translate-y-0.5">
             {n}
           </button>
         ))}
@@ -85,7 +85,7 @@ export function FindEip() {
           </Panel>
         )}
         {!pending && result?.fresh && result.gains.xp === 0 && result.eip && (
-          <p className="mt-3 text-center text-xs text-muted">Discovery XP is capped at 3 EIPs. Keep exploring for fun!</p>
+          <p className="mt-3 text-center text-xs text-muted">Your first discovery earns a one-time bonus. Keep exploring for fun!</p>
         )}
       </div>
     </div>

@@ -1,8 +1,8 @@
 import { Suspense } from "react";
-import Link from "next/link";
 import type { Metadata } from "next";
 import { getAdmin } from "@/lib/server/admin";
 import { adminLogout } from "@/app/actions/admin";
+import { AdminNavLinks } from "@/components/admin/nav-links";
 import { BrandMark } from "@/components/logo";
 
 export const metadata: Metadata = { title: { default: "Booth Admin", template: "%s · Booth Admin" }, robots: { index: false, follow: false } };
@@ -25,11 +25,12 @@ const NAV = [
 
 export default function AdminLayout({ children }: LayoutProps<"/booth-admin">) {
   return (
-    <div className="min-h-dvh bg-white/95">
-      <header className="border-b-[3px] border-line bg-panel">
+    // A calm, solid parchment desk: volunteers read this all day, so no scenery behind it.
+    <div className="on-parchment relative z-10 min-h-dvh bg-[#efe2c2]">
+      <header className="wood-plate sticky top-0 z-30">
         <div className="mx-auto flex max-w-6xl items-center gap-3 px-4 py-3">
-          <BrandMark size={28} />
-          <span className="font-arcade text-xs">ETHQUEST <span className="text-gold">BOOTH ADMIN</span></span>
+          <BrandMark size={32} />
+          <span className="font-arcade text-sm text-[#fff3d6]">ETHQuest <span className="text-[var(--gold)]">Booth admin</span></span>
           <Suspense>
             <Who />
           </Suspense>
@@ -48,10 +49,10 @@ async function Who() {
   if (!admin) return null;
   return (
     <form action={adminLogout} className="ml-auto flex items-center gap-3 text-sm">
-      <span className="hidden text-muted sm:inline">
-        {admin.name} · <span className="text-gold">{admin.role}</span>
+      <span className="hidden text-[#d6c3a0] sm:inline">
+        {admin.name} · <span className="text-[var(--gold)]">{admin.role}</span>
       </span>
-      <button className="font-arcade text-xs text-red underline">LOG OUT</button>
+      <button className="px-btn px-btn--red px-btn--sm !min-h-[36px] !text-[0.75rem]">Log out</button>
     </form>
   );
 }
@@ -60,12 +61,8 @@ async function Nav() {
   const admin = await getAdmin();
   if (!admin) return null;
   return (
-    <nav className="no-scrollbar mx-auto flex max-w-6xl gap-1 overflow-x-auto px-4 pb-2" aria-label="Admin">
-      {NAV.map((n) => (
-        <Link key={n.href} href={n.href} className="font-pixel shrink-0 bg-raised px-3 py-2 text-sm hover:bg-purple-lo">
-          {n.label}
-        </Link>
-      ))}
+    <nav className="no-scrollbar mx-auto flex max-w-6xl gap-2 overflow-x-auto px-4 pb-3 pt-1" aria-label="Admin">
+      <AdminNavLinks items={NAV} />
     </nav>
   );
 }

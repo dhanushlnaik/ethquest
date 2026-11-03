@@ -88,14 +88,8 @@ export function WelcomeChest({ collected, soldOut, nickname }: { collected: bool
 
 function Shell({ children }: { children: React.ReactNode }) {
   return (
-    <motion.section
-      initial={{ opacity: 0, y: 18, scale: 0.96 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ type: "spring", stiffness: 260, damping: 22 }}
-      className="px-panel mx-auto w-full max-w-md px-6 py-7 text-center"
-    >
-      {children}
-    </motion.section>
+    // CSS entrance: visible even before JavaScript loads.
+    <section className="px-panel anim-pop-in mx-auto w-full max-w-md px-6 py-7 text-center">{children}</section>
   );
 }
 

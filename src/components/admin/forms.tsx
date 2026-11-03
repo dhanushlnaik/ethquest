@@ -31,7 +31,7 @@ export function Field({ label, children, hint }: { label: string; children: Reac
   );
 }
 
-export const inputCls = "w-full bg-sunken px-3 py-2 text-sm text-text outline-none ring-2 ring-line focus:ring-purple";
+export const inputCls = "w-full bg-[#fffaf0] px-3 py-2 text-base text-ink outline-none ring-2 ring-[var(--parch-edge)] focus:ring-[3px] focus:ring-[var(--gold-dk)]";
 
 /** A one-click action button (toggle, grant, void…) with confirm + inline feedback. */
 export function ActionButton({ run, label, confirm, tone = "ghost" }: { run: () => Promise<{ ok: boolean; error?: string }>; label: string; confirm?: string; tone?: "ghost" | "purple" | "gold" | "blue" | "green" }) {

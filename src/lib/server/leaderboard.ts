@@ -1,4 +1,5 @@
 import "server-only";
+import { connection } from "next/server";
 import { db } from "./db";
 import { eventDayStart } from "./event";
 
@@ -27,6 +28,7 @@ export async function topPlayers(limit = 50): Promise<BoardRow[]> {
 
 /** Today's board (Mumbai time): XP earned since midnight. Just for bragging rights. */
 export async function dailyTop(limit = 50): Promise<BoardRow[]> {
+  await connection();
   const since = eventDayStart();
   const rows = await db.$queryRaw<{ id: string; nickname: string; avatar: string; level: number; xp: number }[]>`
     SELECT p.id, p.nickname, p.avatar, p.level, SUM(x.amount)::int AS xp

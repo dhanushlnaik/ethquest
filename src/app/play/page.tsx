@@ -15,10 +15,9 @@ export default function Home() {
       <section className="relative mx-auto flex max-w-3xl flex-col items-center pb-6 pt-4 text-center">
         <p className="font-arcade text-xs tracking-widest text-gold">EIPsInsight Impact Booth · Devcon 8 Mumbai</p>
         <Logo className="mt-4" />
-        <p className="font-pixel mt-5 max-w-xl text-lg leading-snug [text-shadow:0_2px_0_rgba(20,14,8,0.7)] sm:text-2xl">
-          Scan. Get your swag. Play if you want.
-          <br />
-          Climb the leaderboard. Take home the hoodie.
+        <p className="font-pixel mt-5 max-w-2xl text-balance text-base leading-relaxed [text-shadow:0_2px_0_rgba(20,14,8,0.7)] sm:text-xl">
+          <span className="inline-block">Scan. Get your swag.</span> <span className="inline-block">Play if you want.</span>{" "}
+          <span className="inline-block">Climb the leaderboard.</span> <span className="inline-block text-gold">Take home the hoodie.</span>
         </p>
         <div className="mt-5 flex items-end justify-center gap-1 sm:gap-3">
           {["builder", "protocol-engineer", "explorer", "governance-wizard", "researcher"].map((c, i) => (

@@ -5,6 +5,7 @@ import Link from "next/link";
 import { AnimatePresence, motion } from "motion/react";
 import { startMission, submitAnswer, requestHint } from "@/app/actions/game";
 import type { AnswerResult, PublicRound, Reveal, StartResult } from "@/lib/games/types";
+import type { RankedPreview } from "@/lib/server/event";
 import { useFx, Confetti } from "../fx";
 import { Bar, Button, ButtonLink, ExternalLink, Panel, PixelIcon, PixelLoader, Sprite, Tag, cx } from "../pixel";
 import { play } from "@/lib/sfx";
@@ -13,12 +14,13 @@ import { MatchRound } from "./match";
 import { TimelineRound } from "./timeline";
 import { Burst } from "../burst";
 
-const ANSWER_COLORS = ["var(--c-red)", "var(--c-blue)", "var(--c-green)", "var(--c-orange)"];
+// Rust, teal, moss, gold: one per answer slot, from the treasure palette.
+const ANSWER_COLORS = ["#c0392b", "#3f7f8c", "#5c7a1e", "#b8860b"];
 
-type Phase = { name: "loading" } | { name: "error"; message: string } | { name: "playing"; game: StartResult; index: number; result: AnswerResult | null; totalXP: number };
+type Phase = { name: "gate" } | { name: "loading" } | { name: "error"; message: string } | { name: "playing"; game: StartResult; index: number; result: AnswerResult | null; totalXP: number };
 
-export function GameRunner({ slug, backHref, backLabel, character = "explorer", intro }: { slug: string; backHref: string; backLabel: string; character?: string; intro?: string }) {
-  const [phase, setPhase] = useState<Phase>({ name: "loading" });
+export function GameRunner({ slug, backHref, backLabel, character = "explorer", intro, gate }: { slug: string; backHref: string; backLabel: string; character?: string; intro?: string; gate?: RankedPreview }) {
+  const [phase, setPhase] = useState<Phase>(gate ? { name: "gate" } : { name: "loading" });
   const [startedOnce, setStartedOnce] = useState(false);
 
   const begin = useCallback(async () => {
@@ -33,12 +35,14 @@ export function GameRunner({ slug, backHref, backLabel, character = "explorer", 
   useEffect(() => {
     // Kick off the first round set once on mount (guards against dev double-invocation);
     // network failures land in the error state with a retry.
-    if (kicked.current) return;
+    // Ranked games wait for the player to press Start on the gate screen.
+    if (kicked.current || gate) return;
     kicked.current = true;
     void begin().catch(() => setPhase({ name: "error", message: "Couldn't reach the server. Check your connection." }));
-  }, [begin]);
+  }, [begin, gate]);
 
-  if (phase.name === "loading") return <PixelLoader label={startedOnce ? "Shuffling" : "Loading game"} />;
+  if (phase.name === "gate" && gate) return <RankedGate gate={gate} character={character} onStart={() => void begin().catch(() => setPhase({ name: "error", message: "Couldn't reach the server. Check your connection." }))} />;
+  if (phase.name === "loading" || phase.name === "gate") return <PixelLoader label={startedOnce ? "Shuffling" : "Loading game"} />;
   if (phase.name === "error")
     return (
       <Panel tone="red" className="mx-auto max-w-md p-6 text-center">
@@ -179,7 +183,7 @@ function ChoiceRound({ round, game, index, reveal, pending, onPick }: { round: E
                 style={{ animationDelay: `${i * 70}ms` }}
               >
                 <span className="flex items-start gap-3">
-                  <span className="font-arcade mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-lg border-[3px] border-ink text-sm text-white [text-shadow:0_2px_0_var(--ink)]" style={{ background: ANSWER_COLORS[i % ANSWER_COLORS.length] }}>{String.fromCharCode(65 + i)}</span>
+                  <span className="font-arcade mt-0.5 grid h-8 w-8 shrink-0 place-items-center border-[3px] border-[var(--wood-dk)] text-sm text-[#fff3d6] shadow-[inset_0_-3px_0_rgba(0,0,0,0.3),inset_0_2px_0_rgba(255,255,255,0.25)] [text-shadow:0_2px_0_rgba(0,0,0,0.5)]" style={{ background: ANSWER_COLORS[i % ANSWER_COLORS.length] }}>{String.fromCharCode(65 + i)}</span>
                   <span className="min-w-0">
                     <span className={cx("block", round.layout === "cards" ? "font-arcade text-xs text-gold" : "font-pixel text-lg leading-snug")}>{o.label}</span>
                     {o.sub && <span className="block text-xs text-muted">{o.sub}</span>}
@@ -204,7 +208,7 @@ function ChoiceRound({ round, game, index, reveal, pending, onPick }: { round: E
             </Panel>
           ) : (
             <Button tone="ghost" size="sm" onClick={askHint} disabled={hintLoading || pending}>
-              <PixelIcon name="question" size={16} /> {hintLoading ? "…" : "Hint (fewer XP)"}
+              <PixelIcon name="question" size={16} /> {hintLoading ? "…" : game.ranked?.counts ? "Hint (−2 pts)" : "Hint"}
             </Button>
           )}
         </div>
@@ -327,6 +331,33 @@ function RevealPanel({ reveal }: { reveal: Reveal }) {
 }
 
 // ---------------- Ranked ----------------
+
+function RankedGate({ gate, character, onStart }: { gate: RankedPreview; character: string; onStart: () => void }) {
+  const counts = !gate.closed && gate.runsLeft > 0;
+  return (
+    <Panel tone={counts ? "gold" : "default"} className="mx-auto max-w-md p-6 text-center">
+      <Sprite name={character} size={104} className="mx-auto" />
+      <p className="font-arcade mt-3 text-xs text-gold">{counts ? "Ranked run" : "Practice run"}</p>
+      <p className="font-pixel mt-1 text-2xl">Best: {gate.best}<span className="text-base text-muted">/{gate.max} XP</span></p>
+      <ul className="mt-4 space-y-1 text-left text-base">
+        <li className="flex justify-between"><span className="text-muted">Accuracy</span><span>up to {gate.base}</span></li>
+        <li className="flex justify-between"><span className="text-muted">Perfect, no hints</span><span>+{gate.perfect}</span></li>
+        <li className="flex justify-between"><span className="text-muted">Speed (under {gate.targetSeconds}s)</span><span>+{gate.speed}</span></li>
+        <li className="flex justify-between"><span className="text-muted">Each hint</span><span>−2</span></li>
+      </ul>
+      <p className="mt-4 text-base">
+        {gate.closed
+          ? "Leaderboard scoring has closed. Play for fun!"
+          : counts
+            ? <>Only your best run counts. <b>{gate.runsLeft} of {gate.runsPerDay}</b> ranked runs left today; starting one uses it.</>
+            : <>You&apos;ve used today&apos;s {gate.runsPerDay} ranked runs. Practice runs don&apos;t change your score.</>}
+      </p>
+      <Button tone={counts ? "gold" : "purple"} size="lg" className="shine mt-5 w-full" onClick={onStart}>
+        {counts ? "Start ranked run" : "Start practice run"}
+      </Button>
+    </Panel>
+  );
+}
 
 function RankedBanner({ info }: { info: NonNullable<StartResult["ranked"]> }) {
   return (
