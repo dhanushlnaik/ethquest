@@ -1,6 +1,6 @@
 import "server-only";
 import { randomInt } from "node:crypto";
-import { db, pool } from "./db";
+import { db, EI, pool } from "./db";
 import { eipTitles, recentDecisions, seriesName, getEip } from "./eipsinsight";
 import type { PublicOption, PublicRound, Reveal } from "@/lib/games/types";
 import type { Difficulty } from "@/generated/prisma/client";
@@ -386,9 +386,9 @@ async function buildEipExplorer(difficulty: Difficulty, seen: Set<string>): Prom
   // 2) + 3) Live proposals from EIPsInsight's database: thousands of combinations, so no answer key to share.
   const { rows } = await pool.query<EipRow>(
     `SELECT e.eip_number, e.title, s.category, r.name AS repo
-       FROM public.eips e
-       JOIN public.eip_snapshots s ON s.eip_id = e.id
-       JOIN public.repositories r ON r.id = s.repository_id
+       FROM ${EI}.eips e
+       JOIN ${EI}.eip_snapshots s ON s.eip_id = e.id
+       JOIN ${EI}.repositories r ON r.id = s.repository_id
       WHERE s.status IN ('Final', 'Last Call') AND s.category IN ('Core', 'ERC', 'Networking', 'Interface')
         AND e.title IS NOT NULL AND length(e.title) BETWEEN 8 AND 70
       ORDER BY random() LIMIT 40`,

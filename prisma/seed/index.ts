@@ -8,20 +8,22 @@ import { trivia, spotFake, matchSets } from "./questions";
 import { upgrades, hunts, plainEnglish, pathways, achievements, rewards, retiredRewards, missions, upgradeUrl, UPGRADE_SOURCE } from "./world";
 
 const pool = new Pool({ connectionString: process.env.DATABASE_URL, max: 3 });
+// Where EIPsInsight's tables live (see src/lib/server/db.ts).
+const EI = process.env.EIPSINSIGHT_SCHEMA ?? "public";
 const db = new PrismaClient({ adapter: new PrismaPg(pool, { schema: process.env.ETHQUEST_SCHEMA ?? "ethquest" }) });
 
 const json = (v: unknown) => v as Prisma.InputJsonValue;
 
 async function eipTitles(numbers: number[]) {
-  const { rows } = await pool.query(`SELECT eip_number, title FROM public.eips WHERE eip_number = ANY($1)`, [numbers]);
+  const { rows } = await pool.query(`SELECT eip_number, title FROM ${EI}.eips WHERE eip_number = ANY($1)`, [numbers]);
   return new Map<number, string>(rows.map((r) => [r.eip_number, r.title]));
 }
 
 async function guardFakes() {
   const fakes = spotFake.flatMap((s) => s.cards.filter((c) => c.fake).map((c) => c.number));
   const { rows } = await pool.query(
-    `SELECT eip_number FROM public.eips WHERE eip_number = ANY($1)
-     UNION SELECT eip_number FROM public.pull_request_eips WHERE eip_number = ANY($1)`,
+    `SELECT eip_number FROM ${EI}.eips WHERE eip_number = ANY($1)
+     UNION SELECT eip_number FROM ${EI}.pull_request_eips WHERE eip_number = ANY($1)`,
     [fakes],
   );
   if (rows.length) throw new Error(`Spot-the-Fake numbers collide with real EIPs/PRs: ${rows.map((r) => r.eip_number).join(", ")}`);

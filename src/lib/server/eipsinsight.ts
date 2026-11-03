@@ -1,5 +1,5 @@
 import "server-only";
-import { pool } from "./db";
+import { EI, pool } from "./db";
 
 // Read-only access to EIPsInsight's own tables (public schema). ETHQuest never writes here.
 
@@ -30,11 +30,11 @@ export async function getEip(number: number): Promise<EipInfo | null> {
     const { rows } = await pool.query(
       `SELECT e.eip_number, e.title, e.author, e.created_at::text AS created_at, s.status, s.type, s.category, s.requires, r.name AS repo,
               u.name AS up_name, u.slug AS up_slug, c.bucket AS up_bucket
-         FROM public.eips e
-         JOIN public.eip_snapshots s ON s.eip_id = e.id
-         JOIN public.repositories r ON r.id = s.repository_id
-         LEFT JOIN public.upgrade_composition_current c ON c.eip_number = e.eip_number
-         LEFT JOIN public.upgrades u ON u.id = c.upgrade_id
+         FROM ${EI}.eips e
+         JOIN ${EI}.eip_snapshots s ON s.eip_id = e.id
+         JOIN ${EI}.repositories r ON r.id = s.repository_id
+         LEFT JOIN ${EI}.upgrade_composition_current c ON c.eip_number = e.eip_number
+         LEFT JOIN ${EI}.upgrades u ON u.id = c.upgrade_id
         WHERE e.eip_number = $1
         LIMIT 1`,
       [number],
@@ -119,7 +119,7 @@ export const seriesName = (s: string) => SERIES_NAMES[s] ?? s.toUpperCase();
 export async function recentDecisions(limit = 60, series = ["acde", "acdc", "acdt"]): Promise<Decision[]> {
   const { rows } = await pool.query(
     `SELECT series, call_number, occurred_on::text AS occurred_on, key_decisions
-       FROM public.protocol_calls
+       FROM ${EI}.protocol_calls
       WHERE series = ANY($1) AND key_decisions IS NOT NULL
       ORDER BY occurred_on DESC
       LIMIT 20`,
@@ -150,16 +150,16 @@ export async function recentDecisions(limit = 60, series = ["acde", "acdc", "acd
 
 export async function eipTitles(numbers: number[]) {
   if (!numbers.length) return new Map<number, string>();
-  const { rows } = await pool.query(`SELECT eip_number, title FROM public.eips WHERE eip_number = ANY($1)`, [numbers]);
+  const { rows } = await pool.query(`SELECT eip_number, title FROM ${EI}.eips WHERE eip_number = ANY($1)`, [numbers]);
   return new Map<number, string>(rows.map((r) => [r.eip_number, r.title]));
 }
 
 export async function upgradeComposition(slug: string) {
   const { rows } = await pool.query(
     `SELECT c.eip_number, c.bucket, e.title
-       FROM public.upgrade_composition_current c
-       JOIN public.upgrades u ON u.id = c.upgrade_id
-       LEFT JOIN public.eips e ON e.eip_number = c.eip_number
+       FROM ${EI}.upgrade_composition_current c
+       JOIN ${EI}.upgrades u ON u.id = c.upgrade_id
+       LEFT JOIN ${EI}.eips e ON e.eip_number = c.eip_number
       WHERE u.slug = $1
       ORDER BY c.bucket, c.eip_number`,
     [slug],

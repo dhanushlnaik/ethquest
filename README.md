@@ -26,6 +26,16 @@ pnpm install          # also runs prisma generate
 
 `.env` (gitignored) needs: `DATABASE_URL`, `ETHQUEST_SCHEMA=ethquest`, `SESSION_SECRET`, `ADMIN_SEED_EMAIL`, `ADMIN_SEED_PASSWORD`, `KIOSK_TOKEN`, `NEXT_PUBLIC_SITE_URL` (and `PIXELLAB_API_KEY` only to regenerate art).
 
+**Database layout.** ETHQuest writes only to its own `ethquest` schema. It also reads a few EIPsInsight tables
+(EIPs, snapshots, upgrades, ACD calls) from the schema named by `EIPSINSIGHT_SCHEMA` (default `public`, i.e. running on
+the EIPsInsight database itself). On a separate database, those tables are mirrored into an `eipsinsight` schema:
+
+- `DATABASE_URL`: runtime connection. For servers with a self-signed TLS cert use `?uselibpqcompat=true&sslmode=require`.
+- `DIRECT_DATABASE_URL`: used by the Prisma CLI (`migrate`, `studio`); `?sslmode=prefer` works there.
+- `EIPSINSIGHT_SCHEMA=eipsinsight` and `EIPSINSIGHT_SOURCE_DATABASE_URL`: where the mirror reads from.
+- Refresh the mirror (e.g. before each booth day, for the latest ACD decisions):
+  `SOURCE_DATABASE_URL=$EIPSINSIGHT_SOURCE_DATABASE_URL TARGET_DATABASE_URL=$DATABASE_URL node scripts/move-db.mjs mirror`
+
 ```bash
 pnpm prisma migrate deploy   # creates/updates the ethquest schema only
 ```
