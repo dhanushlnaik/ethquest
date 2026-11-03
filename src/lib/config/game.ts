@@ -105,7 +105,7 @@ export const WORLDS: Record<
 export const EIPSINSIGHT = "https://eipsinsight.com";
 
 export const EIPSINSIGHT_SOCIALS = [
-  { key: "x", label: "X / Twitter", handle: "@EIPsInsight", url: "https://x.com/EIPsInsight", icon: "x" },
+  { key: "x", label: "X", handle: "@EIPsInsight", url: "https://x.com/EIPsInsight", icon: "x" },
   { key: "linkedin", label: "LinkedIn", handle: "EIPsInsight", url: "https://www.linkedin.com/company/eipsinsight/", icon: "linkedin" },
   { key: "youtube", label: "YouTube", handle: "@etherworldco", url: "https://www.youtube.com/@etherworldco", icon: "youtube" },
   { key: "github", label: "GitHub", handle: "AvarchLLC/eipsinsight-v4", url: "https://github.com/AvarchLLC/eipsinsight-v4", icon: "github" },

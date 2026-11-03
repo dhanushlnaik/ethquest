@@ -1,11 +1,12 @@
 import type { Metadata, Viewport } from "next";
-import { Geist_Mono, Nunito, Pixelify_Sans } from "next/font/google";
+import { Geist_Mono, Press_Start_2P, VT323 } from "next/font/google";
 import "./globals.css";
 import { ServiceWorkerRegister } from "@/components/sw-register";
 
-const body = Nunito({ variable: "--font-body", subsets: ["latin"], weight: ["400", "600", "700", "800"] });
+// Body: VT323 (CRT terminal). Display/HUD: Press Start 2P (8-bit arcade). Sizes are normalised in globals.css.
+const body = VT323({ variable: "--font-body", subsets: ["latin"], weight: "400" });
 const mono = Geist_Mono({ variable: "--font-mono-face", subsets: ["latin"] });
-const display = Pixelify_Sans({ variable: "--font-display", subsets: ["latin"], weight: ["500", "600", "700"] });
+const display = Press_Start_2P({ variable: "--font-display", subsets: ["latin"], weight: "400" });
 
 export const metadata: Metadata = {
   metadataBase: new URL(process.env.NEXT_PUBLIC_SITE_URL ?? "http://localhost:3000"),
