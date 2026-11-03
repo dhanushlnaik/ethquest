@@ -333,7 +333,7 @@ function RevealPanel({ reveal }: { reveal: Reveal }) {
 // ---------------- Ranked ----------------
 
 function RankedGate({ gate, character, onStart }: { gate: RankedPreview; character: string; onStart: () => void }) {
-  const counts = !gate.closed && gate.runsLeft > 0;
+  const counts = gate.resumable || (!gate.closed && gate.runsLeft > 0);
   return (
     <Panel tone={counts ? "gold" : "default"} className="mx-auto max-w-md p-6 text-center">
       <Sprite name={character} size={104} className="mx-auto" />
@@ -346,14 +346,16 @@ function RankedGate({ gate, character, onStart }: { gate: RankedPreview; charact
         <li className="flex justify-between"><span className="text-muted">Each hint</span><span>−2</span></li>
       </ul>
       <p className="mt-4 text-base">
-        {gate.closed
+        {gate.resumable
+          ? <>You already started a ranked run. It resumes where you left off, <b>and its clock kept running</b>.</>
+          : gate.closed
           ? "Leaderboard scoring has closed. Play for fun!"
           : counts
             ? <>Only your best run counts. <b>{gate.runsLeft} of {gate.runsPerDay}</b> ranked runs left today; starting one uses it.</>
             : <>You&apos;ve used today&apos;s {gate.runsPerDay} ranked runs. Practice runs don&apos;t change your score.</>}
       </p>
       <Button tone={counts ? "gold" : "purple"} size="lg" className="shine mt-5 w-full" onClick={onStart}>
-        {counts ? "Start ranked run" : "Start practice run"}
+        {gate.resumable ? "Resume ranked run" : counts ? "Start ranked run" : "Start practice run"}
       </Button>
     </Panel>
   );

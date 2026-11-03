@@ -262,7 +262,7 @@ export const achievements = [
   { slug: "protocol-nerd", name: "Protocol Nerd", description: "Completed a game on Protocol Nerd difficulty.", icon: "brain", xpBonus: 0 },
   { slug: "perfect-round", name: "Perfect Round", description: "5/5 in Guess That EIP.", icon: "star", xpBonus: 0 },
   { slug: "devcon-og", name: "Devcon OG", description: "Collected swag at the EIPsInsight booth, Devcon 8 Mumbai.", icon: "ticket", xpBonus: 0 },
-  { slug: "champion", name: "Protocol Playground Champion", description: "Reached Level 7: Protocol Legend.", icon: "crown", xpBonus: 0 },
+  { slug: "champion", name: "Protocol Legend", description: "Reached Level 7, the top level. (The hoodie champion is decided on the leaderboard.)", icon: "crown", xpBonus: 0 },
   { slug: "eip-wall", name: "EIP Wall Artist", description: "Left your mark on the physical EIP Wall.", icon: "brick", xpBonus: 0, manual: true },
   { slug: "shorts-star", name: "Shorts Star", description: "Played a booth video challenge with the EIPsInsight team.", icon: "camera", xpBonus: 0, manual: true },
 ];

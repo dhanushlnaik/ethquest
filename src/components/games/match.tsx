@@ -5,14 +5,26 @@ import type { PublicRound, Reveal } from "@/lib/games/types";
 import { Button, PixelIcon, cx } from "../pixel";
 import { play } from "@/lib/sfx";
 
-const PAIR_COLORS = ["var(--c-grape)", "var(--c-blue)", "var(--c-orange)", "var(--c-green-dk)", "#f472b6", "#fb923c"];
+// Treasure-palette pair badges: rust, teal, moss, gold, violet, copper.
+const PAIR_COLORS = ["#c0392b", "#3f7f8c", "#5c7a1e", "#b8860b", "#6b4a8a", "#a3501a"];
 
 /** Tap a left card, then a right card to pair them (works everywhere). On desktop you can also drag left onto right. */
 export function MatchRound({ round, reveal, pending, onSubmit }: { round: Extract<PublicRound, { kind: "match" }>; reveal?: Reveal; pending: boolean; onSubmit: (pairs: Record<string, string>) => void }) {
   const [pairs, setPairs] = useState<Record<string, string>>({});
   const [active, setActive] = useState<string | null>(null);
   const r = reveal?.kind === "match" ? reveal : null;
-  const colorOf = (leftId: string) => PAIR_COLORS[round.left.findIndex((l) => l.id === leftId) % PAIR_COLORS.length];
+  const indexOf = (leftId: string) => round.left.findIndex((l) => l.id === leftId);
+  const colorOf = (leftId: string) => PAIR_COLORS[indexOf(leftId) % PAIR_COLORS.length];
+  /** Numbered badge shown on both halves of a pair, so matches read at a glance. */
+  const pairBadge = (leftId: string) => (
+    <span
+      aria-hidden
+      className="font-arcade grid h-7 w-7 shrink-0 place-items-center border-[3px] border-[var(--wood-dk)] text-xs text-[#fff3d6] [text-shadow:0_2px_0_rgba(0,0,0,0.5)]"
+      style={{ background: colorOf(leftId) }}
+    >
+      {indexOf(leftId) + 1}
+    </span>
+  );
   const leftFor = (rightId: string) => Object.keys(pairs).find((l) => pairs[l] === rightId);
 
   const pair = (leftId: string, rightId: string) => {
@@ -46,10 +58,9 @@ export function MatchRound({ round, reveal, pending, onSubmit }: { round: Extrac
                   disabled={!!r || pending}
                   data-state={active === l.id ? "selected" : r ? (correct ? "correct" : "wrong") : undefined}
                   className="px-panel px-panel--raised px-choice flex min-h-[64px] items-center gap-2"
-                  style={mine && !r ? { boxShadow: `inset 0 0 0 3px ${colorOf(l.id)}` } : undefined}
                   aria-pressed={active === l.id}
                 >
-                  {mine && <span className="h-3 w-3 shrink-0" style={{ background: colorOf(l.id) }} aria-hidden />}
+                  {mine && !r && pairBadge(l.id)}
                   <span className="font-pixel text-base leading-tight sm:text-lg">{l.label}</span>
                 </button>
               </li>
@@ -71,9 +82,8 @@ export function MatchRound({ round, reveal, pending, onSubmit }: { round: Extrac
                   onClick={() => active && !r && pair(active, rt.id)}
                   disabled={!!r || pending || (!active && !r)}
                   className={cx("px-panel px-choice flex min-h-[64px] items-center gap-2", active ? "px-panel--blue" : "px-panel--sunken")}
-                  style={owner && !r ? { boxShadow: `inset 0 0 0 3px ${colorOf(owner)}` } : undefined}
                 >
-                  {owner && !r && <span className="h-3 w-3 shrink-0" style={{ background: colorOf(owner) }} aria-hidden />}
+                  {owner && !r && pairBadge(owner)}
                   <span className="text-sm leading-snug sm:text-base">
                     {rt.label}
                     {r && correctLeft && (

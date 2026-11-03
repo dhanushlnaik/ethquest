@@ -50,9 +50,21 @@ export async function rankedBests(playerId: string) {
 export async function rankedPreview(playerId: string, slug: RankedSlug) {
   await connection(); // render path: reads the clock, so never prerender
   const [cfg, mission] = await Promise.all([getEventConfig(), db.mission.findUnique({ where: { slug }, select: { id: true } })]);
-  const [used, best] = await Promise.all([mission ? rankedRunsToday(playerId, mission.id) : 0, rankedBest(db, playerId, slug)]);
+  const [used, best, open] = await Promise.all([
+    mission ? rankedRunsToday(playerId, mission.id) : 0,
+    rankedBest(db, playerId, slug),
+    // Mirrors startMission: an unanswered ranked run from the last 15 minutes is resumed, not replaced.
+    mission
+      ? db.missionAttempt.findFirst({
+          where: { playerId, missionId: mission.id, status: "ACTIVE", startedAt: { gte: new Date(Date.now() - 15 * 60_000) }, state: { path: ["ranked"], equals: true } },
+          select: { state: true },
+        })
+      : null,
+  ]);
+  const resumable = !!open && ((open.state as { answers?: unknown[] }).answers ?? []).every((a) => a === null);
   const g = RANKED_GAMES[slug];
   return {
+    resumable,
     best,
     max: g.base + g.perfect + g.speed,
     base: g.base, perfect: g.perfect, speed: g.speed, targetSeconds: g.targetSeconds,
