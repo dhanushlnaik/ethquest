@@ -11,6 +11,7 @@ import type { BattleView } from "@/lib/server/battles";
 import { Button, cx, PixelIcon, Sprite } from "../pixel";
 import { Burst } from "../burst";
 import { CardBack, PixelCard } from "./pixel-card";
+import { ShareButtons } from "../share-buttons";
 
 /** Pick exactly 3 cards, in order: card 1 fights round 1, and so on. */
 export function DeckPicker({ cards, onConfirm, confirmLabel, pending }: { cards: CardView[]; onConfirm: (n: number[]) => void; confirmLabel: string; pending?: boolean }) {
@@ -113,7 +114,7 @@ export function CancelBattle({ code }: { code: string }) {
 const statLabel = (k: string) => STATS.find((s) => s.key === k)?.label ?? k;
 
 /** Animated replay: rounds reveal one by one, then the verdict. */
-export function BattleReplay({ battle, viewerId }: { battle: BattleView; viewerId: string | null }) {
+export function BattleReplay({ battle, viewerId, shareBase }: { battle: BattleView; viewerId: string | null; shareBase: string }) {
   const rounds = battle.rounds ?? [];
   const [shown, setShown] = useState(0);
   const a = battle.challengerCards ?? [];
@@ -174,6 +175,11 @@ export function BattleReplay({ battle, viewerId }: { battle: BattleView; viewerI
           <p className="mt-1 text-muted">
             {draw ? "Evenly matched." : `${battle.winnerId === battle.challenger.id ? battle.challenger.nickname : battle.opponent?.nickname} wins the best of 3.`}
           </p>
+          {youWon && !battle.vsBot && (
+            <div className="mt-3 flex justify-center">
+              <ShareButtons url={`${shareBase}/s/battle/${battle.code}`} title={`I won an EIP card battle on ETHQuest by @EIPsInsight. Think your deck can beat mine?`} label="Share win" />
+            </div>
+          )}
           <Link href="/play/battle" className="px-btn px-btn--sm mt-3">Battle again</Link>
         </motion.div>
       )}

@@ -131,3 +131,13 @@ export async function claimGift(code: string) {
     return { card: toView(card, { isNew: true }) };
   });
 }
+
+/** Dismiss the "card news" panel: changes before now are considered seen. */
+export async function markNewsSeen() {
+  return safeAction(async () => {
+    const player = await requirePlayer();
+    await db.player.update({ where: { id: player.id }, data: { newsSeenAt: new Date() } });
+    refresh();
+    return null;
+  });
+}

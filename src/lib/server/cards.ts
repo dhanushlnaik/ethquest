@@ -12,6 +12,8 @@ export const PACK_SIZE = 4;
 /** Per-slot rarity odds (%). The last card of every pack is Rare or better. */
 const ODDS: [CardRarity, number][] = [["COMMON", 52], ["UNCOMMON", 28], ["RARE", 12], ["EPIC", 6], ["LEGENDARY", 2]];
 const ODDS_LAST: [CardRarity, number][] = [["RARE", 70], ["EPIC", 24], ["LEGENDARY", 6]];
+/** 7-day streak packs: the last card is Epic or better. */
+const ODDS_STREAK: [CardRarity, number][] = [["EPIC", 80], ["LEGENDARY", 20]];
 export const RARITY_ORDER: CardRarity[] = ["COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY"];
 
 let catalog: { at: number; all: EipCard[]; byRarity: Map<CardRarity, EipCard[]>; byNumber: Map<number, EipCard> } | null = null;
@@ -29,6 +31,7 @@ export function toView(c: EipCard, extra: { count?: number; isNew?: boolean } = 
     number: c.number, repo: c.repo as "eip" | "erc", title: c.title, status: c.status, category: c.category, type: c.type,
     year: c.year, upgrade: c.upgrade, rarity: c.rarity, lore: c.lore, buzz: c.buzz, links: c.links, stage: c.stage,
     count: extra.count ?? 0, isNew: extra.isNew ?? false,
+    leveledUp: !!c.leveledAt && Date.now() - c.leveledAt.getTime() < 7 * 86_400_000,
   };
 }
 
@@ -60,7 +63,8 @@ export async function openPack(playerId: string, packId: string) {
     if (pack.openedAt) return { cards: pack.cards, newOnes: [] as number[], already: true };
     const cards: number[] = [];
     for (let i = 0; i < PACK_SIZE; i++) {
-      const rarity = roll(i === PACK_SIZE - 1 ? ODDS_LAST : ODDS);
+      const last = i === PACK_SIZE - 1;
+      const rarity = roll(last ? (pack.key.startsWith("streak:") ? ODDS_STREAK : ODDS_LAST) : ODDS);
       const pool = cat.byRarity.get(rarity) ?? cat.all;
       cards.push(pool[randomInt(pool.length)].number);
     }

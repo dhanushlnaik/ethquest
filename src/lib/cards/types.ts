@@ -18,6 +18,8 @@ export type CardView = {
   stage: number;
   count: number;
   isNew: boolean;
+  /** The real proposal changed status in the last 7 days (Living cards). */
+  leveledUp: boolean;
 };
 
 export const STATS: { key: StatKey; label: string; hint: string }[] = [

@@ -9,6 +9,8 @@ import { eipUrl } from "@/lib/config/game";
 import { PixelLoader } from "@/components/pixel";
 import { PixelCard } from "@/components/cards/pixel-card";
 import { GiftButton } from "@/components/cards/card-client";
+import { ShareButtons } from "@/components/share-buttons";
+import { SITE_URL } from "@/lib/site";
 
 export default function CardPage({ params }: PageProps<"/play/cards/[number]">) {
   return (
@@ -49,6 +51,15 @@ async function Detail({ params }: { params: PageProps<"/play/cards/[number]">["p
         <div className="mt-4 flex flex-wrap gap-3">
           <a href={eipUrl(card.number, card.repo)} target="_blank" rel="noopener noreferrer" data-track="product" className="px-btn px-btn--gold px-btn--sm">Read it on EIPsInsight ↗</a>
         </div>
+        {mine && player && (
+          <div className="mt-4">
+            <ShareButtons
+              url={`${SITE_URL}/s/card/${n}?by=${encodeURIComponent(player.nickname)}`}
+              title={`I collected ${cardLabel(view)} "${card.title}" (${rs.label}) on ETHQuest by @EIPsInsight`}
+              label="Share card"
+            />
+          </div>
+        )}
         {mine && <div className="mt-4"><GiftButton number={n} count={mine.count} /></div>}
       </section>
     </div>

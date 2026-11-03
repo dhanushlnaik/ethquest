@@ -4,9 +4,12 @@ import { useState, useTransition } from "react";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
 import { AnimatePresence, motion } from "motion/react";
-import { cancelGift, claimDailyPack, claimGift, createGift, openPackAction } from "@/app/actions/cards";
+import { cancelGift, claimDailyPack, claimGift, createGift, markNewsSeen, openPackAction } from "@/app/actions/cards";
 import { play } from "@/lib/audio";
-import { RARITY_STYLE, type CardView, type Rarity } from "@/lib/cards/types";
+import { cardLabel, RARITY_STYLE, type CardView, type Rarity } from "@/lib/cards/types";
+import { ShareButtons } from "../share-buttons";
+
+const RANK: Rarity[] = ["COMMON", "UNCOMMON", "RARE", "EPIC", "LEGENDARY"];
 import { Button, cx, PixelIcon, Treasure } from "../pixel";
 import { Burst } from "../burst";
 import { Portal } from "../portal";
@@ -16,7 +19,7 @@ import { CardBack, PixelCard } from "./pixel-card";
 const RARITY_SFX: Record<Rarity, Parameters<typeof play>[0]> = { COMMON: "tap", UNCOMMON: "coin", RARE: "correct", EPIC: "achievement", LEGENDARY: "fanfare" };
 
 /** Unopened packs + the reveal ceremony. */
-export function PackOpener({ packs }: { packs: { id: string; reason: string }[] }) {
+export function PackOpener({ packs, shareBase, nickname }: { packs: { id: string; reason: string }[]; shareBase: string; nickname: string }) {
   const router = useRouter();
   const { celebrate } = useFx();
   // Packs come from the server (and refresh after claims); only the ones opened here are tracked locally.
@@ -88,6 +91,16 @@ export function PackOpener({ packs }: { packs: { id: string; reason: string }[] 
                   </motion.button>
                 ))}
               </div>
+              {done && (() => {
+                const best = [...reveal.cards].sort((a, b) => RANK.indexOf(b.rarity) - RANK.indexOf(a.rarity))[0];
+                if (!best || RANK.indexOf(best.rarity) < RANK.indexOf("EPIC")) return null;
+                return (
+                  <div className="px-panel px-4 py-3 text-center">
+                    <p className="font-arcade mb-2 text-xs text-gold">Show off your {RARITY_STYLE[best.rarity].label} pull</p>
+                    <ShareButtons url={`${shareBase}/s/card/${best.number}?by=${encodeURIComponent(nickname)}`} title={`I just pulled a ${RARITY_STYLE[best.rarity].label} card: ${cardLabel(best)} "${best.title}" on ETHQuest by @EIPsInsight`} label="Share pull" />
+                  </div>
+                );
+              })()}
               {done && reveal.sets.length > 0 && (
                 <p className="px-panel px-panel--gold anim-pop px-4 py-2 text-center font-pixel text-lg">Set complete: {reveal.sets.join(", ")}!</p>
               )}
@@ -216,5 +229,13 @@ export function ClaimGiftButton({ code }: { code: string }) {
       </Button>
       {msg && <p className="mt-3 text-red">{msg}</p>}
     </div>
+  );
+}
+
+export function MarkNewsSeen() {
+  const router = useRouter();
+  const [pending, start] = useTransition();
+  return (
+    <Button tone="ghost" size="sm" disabled={pending} onClick={() => start(async () => { await markNewsSeen(); router.refresh(); })}>Got it</Button>
   );
 }

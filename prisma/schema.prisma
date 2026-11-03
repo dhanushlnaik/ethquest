@@ -68,6 +68,8 @@ model Player {
   battlesMade   CardBattle[]        @relation("BattleChallenger")
   battlesJoined CardBattle[]        @relation("BattleOpponent")
   passkeys      Passkey[]
+  dailyAnswers  DailyAnswer[]
+  newsSeenAt    DateTime?
 
   @@index([xpTotal(sort: Desc), createdAt])
 }
@@ -486,6 +488,9 @@ model EipCard {
   links     Int
   stage     Int
   updatedAt DateTime   @updatedAt
+  /// Last time the real proposal changed status (Living cards).
+  leveledAt DateTime?
+  addedAt   DateTime   @default(now())
 
   sets   CardSetMember[]
   owners PlayerCard[]
@@ -601,4 +606,39 @@ model Passkey {
   lastUsedAt DateTime?
 
   @@index([playerId])
+}
+
+// ---------------- Living cards: real status changes ----------------
+
+model EipCardChange {
+  id        Int      @id @default(autoincrement())
+  number    Int
+  /// "status" | "title" | "added"
+  field     String
+  fromValue String?
+  toValue   String
+  createdAt DateTime @default(now())
+
+  @@index([createdAt])
+  @@index([number, createdAt])
+}
+
+// ---------------- Daily challenge ----------------
+
+/// One question per day (Mumbai date), the same for every player. Generated on first request.
+model DailyChallenge {
+  day       String   @id
+  question  Json
+  createdAt DateTime @default(now())
+}
+
+model DailyAnswer {
+  playerId   String
+  player     Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  day        String
+  choice     String
+  correct    Boolean
+  answeredAt DateTime @default(now())
+
+  @@id([playerId, day])
 }

@@ -29,7 +29,7 @@ async function Room({ params }: { params: PageProps<"/play/battle/[code]">["para
   const battle = await battleView(code, player?.id ?? null);
   if (!battle) return <p className="font-pixel mt-6 text-xl">No battle with that code.</p>;
   if (battle.status === "CANCELLED") return <p className="font-pixel mt-6 text-xl">This battle was cancelled.</p>;
-  if (battle.status === "DONE") return <div className="mt-4"><BattleReplay battle={battle} viewerId={player?.id ?? null} /></div>;
+  if (battle.status === "DONE") return <div className="mt-4"><BattleReplay battle={battle} viewerId={player?.id ?? null} shareBase={SITE_URL} /></div>;
 
   // OPEN: the challenger waits and shares; anyone else answers with 3 cards.
   if (player?.id === battle.challenger.id) {

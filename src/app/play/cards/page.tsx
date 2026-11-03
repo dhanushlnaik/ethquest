@@ -9,6 +9,9 @@ import { Bar, cx, PixelLoader, SectionTitle } from "@/components/pixel";
 import { NeedPlayer } from "@/components/need-player";
 import { CardGrid, DailyPackButton, PackOpener } from "@/components/cards/card-client";
 import { CardBack, PixelCard } from "@/components/cards/pixel-card";
+import { ChangeStrip } from "@/components/cards/card-news";
+import { recentChanges } from "@/lib/server/living-cards";
+import { SITE_URL } from "@/lib/site";
 
 export const metadata = { title: "EIP Cards" };
 
@@ -29,16 +32,17 @@ async function Collection() {
   const player = await getPlayer();
   if (!player) return <NeedPlayer next="/play/cards" title="Start your collection" />;
   await connection();
-  const [col, packs, cards, cat, daily] = await Promise.all([
+  const [col, packs, cards, cat, daily, changes] = await Promise.all([
     collection(player.id),
     unopenedPacks(player.id),
     ownedCards(player.id),
     getCatalog(),
     db.cardPack.findUnique({ where: { playerId_key: { playerId: player.id, key: `daily:${dayKey()}` } }, select: { id: true } }),
+    recentChanges({ take: 12 }),
   ]);
   return (
     <div className="space-y-6">
-      <PackOpener packs={packs} />
+      <PackOpener packs={packs} shareBase={SITE_URL} nickname={player.nickname} />
 
       <section className="grid gap-4 sm:grid-cols-[1fr_auto]">
         <div className="px-panel p-4">
@@ -62,6 +66,8 @@ async function Collection() {
           <Link href="/play/battle" className="px-btn px-btn--sm">⚔ Battle</Link>
         </div>
       </section>
+
+      <ChangeStrip changes={changes} title="This week in governance" subtitle="Cards follow the real proposals: when an EIP changes status on EIPsInsight, its card levels up for everyone." />
 
       <section>
         <h2 className="font-pixel mb-2 text-2xl [text-shadow:0_2px_0_rgba(20,14,8,0.7)]">Sets</h2>

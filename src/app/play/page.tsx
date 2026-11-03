@@ -14,6 +14,10 @@ import { EipsInsightPromo } from "@/components/promo";
 import { DailyPackButton } from "@/components/cards/card-client";
 import { PixelCard } from "@/components/cards/pixel-card";
 import { SaveProfileCard } from "@/components/passkey";
+import { ChangeStrip } from "@/components/cards/card-news";
+import { cardNews } from "@/lib/server/living-cards";
+import { streakOf } from "@/lib/server/daily";
+import { Flame, nextMilestone } from "@/components/streak";
 
 export default function Home() {
   return (
@@ -44,7 +48,7 @@ async function Dashboard() {
   const player = await getPlayer();
   if (!player) return <Newcomer />;
   await connection();
-  const [bests, rank, packs, col, cat, recent, daily, passkeys] = await Promise.all([
+  const [bests, rank, packs, col, cat, recent, daily, passkeys, news, dq] = await Promise.all([
     rankedBests(player.id),
     rankOf(player.id, player.xpTotal),
     unopenedPacks(player.id),
@@ -53,6 +57,8 @@ async function Dashboard() {
     db.playerCard.findMany({ where: { playerId: player.id }, orderBy: { firstAt: "desc" }, take: 4 }),
     db.cardPack.findUnique({ where: { playerId_key: { playerId: player.id, key: `daily:${dayKey()}` } }, select: { id: true } }),
     db.passkey.count({ where: { playerId: player.id } }),
+    cardNews(player),
+    streakOf(player.id),
   ]);
   const games = (Object.keys(RANKED_GAMES) as RankedSlug[]).map((slug) => {
     const g = RANKED_GAMES[slug];
@@ -71,6 +77,18 @@ async function Dashboard() {
           <span className="px-btn px-btn--sm shine">Open ▶</span>
         </Link>
       )}
+
+      <Link href="/play/daily" className={cx("px-panel flex items-center gap-4 p-4 transition-transform hover:-translate-y-0.5", !dq.answeredToday && "px-panel--gold")}>
+        <Flame streak={dq.streak} size="lg" />
+        <span className="min-w-0 flex-1">
+          <span className="font-arcade block text-xs text-gold">Daily EIP challenge</span>
+          <span className="font-pixel block text-xl">{dq.answeredToday ? "Done for today ✓" : "Today's question is ready"}</span>
+          <span className="block text-sm text-muted">{dq.answeredToday ? "Come back tomorrow to keep your streak." : `Day ${nextMilestone(dq.streak).at} of your streak unlocks ${nextMilestone(dq.streak).reward}.`}</span>
+        </span>
+        {!dq.answeredToday && <span className="px-btn px-btn--sm shine">Play ▶</span>}
+      </Link>
+
+      <ChangeStrip changes={news} title="Your cards leveled up!" subtitle="The real proposals behind these cards just changed status on EIPsInsight." dismissible />
 
       {passkeys === 0 && <SaveProfileCard />}
 

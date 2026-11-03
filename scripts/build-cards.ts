@@ -4,12 +4,8 @@
 //   pnpm tsx --conditions=react-server scripts/build-cards.ts
 import "dotenv/config";
 import { db, EI, pool } from "../src/lib/server/db";
-import type { CardRarity } from "../src/generated/prisma/client";
+import { CATALOG_STATUSES, clampStat, ICONIC, loreFor, rarityFor, stageFor } from "../src/lib/server/card-rules";
 
-const THIS_YEAR = 2026;
-/** Proposals everyone has heard of: always legendary. */
-const ICONIC = [1, 20, 155, 721, 1155, 1559, 3675, 4337, 4844, 7702];
-const STAGE: Record<string, number> = { Living: 95, Final: 90, "Last Call": 75, Review: 60, Draft: 40, Stagnant: 25, Withdrawn: 10 };
 const CURATED_SETS = [
   { slug: "token-standards", name: "Token Standards", description: "The ERCs every wallet and dapp speaks.", icon: "coin", members: [20, 165, 721, 777, 1155, 2612, 4626, 6909] },
   { slug: "account-abstraction", name: "Smart Accounts", description: "From contract wallets to EOAs that set code.", icon: "user", members: [1271, 2771, 4337, 5792, 7702, 7579] },
@@ -35,22 +31,13 @@ async function main() {
   }
 
   // Catalog: everything that reached a meaningful status, plus anything that's part of a network upgrade.
-  const keep = rows.filter((r) => ["Final", "Last Call", "Review", "Living"].includes(r.status) || inUpgrade.has(r.eip_number) || ICONIC.includes(r.eip_number));
+  const keep = rows.filter((r) => CATALOG_STATUSES.includes(r.status) || inUpgrade.has(r.eip_number) || ICONIC.includes(r.eip_number));
   const numbers = new Set(keep.map((r) => r.eip_number));
   const requiredBy = new Map<number, number>();
   for (const r of keep) for (const q of r.requires ?? []) requiredBy.set(q, (requiredBy.get(q) ?? 0) + 1);
   const prsSorted = keep.map((r) => r.prs).sort((a, b) => a - b);
   const pct = (v: number) => (prsSorted.length > 1 ? prsSorted.findLastIndex((x) => x <= v) / (prsSorted.length - 1) : 0.5);
-  const clamp = (n: number) => Math.max(1, Math.min(99, Math.round(n)));
-
-  const rarityOf = (r: Row): CardRarity => {
-    const up = inUpgrade.get(r.eip_number);
-    if (ICONIC.includes(r.eip_number) || up?.headline) return "LEGENDARY";
-    if (up) return "EPIC";
-    if (r.status === "Final" && (r.category === "Core" || r.category === "Networking")) return "RARE";
-    if (r.status === "Final" || r.status === "Living") return "UNCOMMON";
-    return "COMMON";
-  };
+  const clamp = clampStat;
 
   let n = 0;
   for (const r of keep) {
@@ -64,11 +51,11 @@ async function main() {
       type: r.type,
       year,
       upgrade: inUpgrade.get(r.eip_number)?.name ?? null,
-      rarity: rarityOf(r),
-      lore: clamp(year ? 8 + (THIS_YEAR - year) * 8.5 : 30),
+      rarity: rarityFor({ number: r.eip_number, status: r.status, category: r.category }, inUpgrade.get(r.eip_number)),
+      lore: loreFor(year),
       buzz: clamp(5 + pct(r.prs) * 94),
       links: clamp(12 + links * 11),
-      stage: STAGE[r.status] ?? 30,
+      stage: stageFor(r.status),
     };
     await db.eipCard.upsert({ where: { number: r.eip_number }, create: { number: r.eip_number, ...data }, update: data });
     n++;
