@@ -1,36 +1,66 @@
-This is a [Next.js](https://nextjs.org) project bootstrapped with [`create-next-app`](https://nextjs.org/docs/app/api-reference/cli/create-next-app).
+# ETHQuest by EIPsInsight: The Protocol Playground
 
-## Getting Started
+A pixel-art game universe for the EIPsInsight Impact Booth at **Devcon 8, Mumbai (Nov 3–6, 2026)**.
+Scan → play short games across five worlds → earn server-verified XP → collect real swag with a single-use QR.
 
-First, run the development server:
+> Explore. Play. Discover. Contribute. *"Ethereum is serious. Learning about it doesn't have to be."*
+
+- Architecture & decisions: [`docs/ARCHITECTURE.md`](docs/ARCHITECTURE.md)
+- Where every fact comes from: [`docs/CONTENT-SOURCES.md`](docs/CONTENT-SOURCES.md)
+- Asset pack inventory: [`public/assets/README.md`](public/assets/README.md)
+
+## Stack
+
+Next.js 16 (App Router, Cache Components, Turbopack) · React 19 · TypeScript · Tailwind v4 · `motion` · `@dnd-kit` · Prisma 7 + `@prisma/adapter-pg` · PostgreSQL · Zod · Vitest. No Supabase/Firebase/Redis.
+
+## Data model in one paragraph
+
+ETHQuest lives in its **own Postgres schema, `ethquest`**, inside the EIPsInsight database. It writes only there.
+It **reads** EIPsInsight's `public.eips`, `eip_snapshots`, `upgrades`, `upgrade_composition_current` and `protocol_calls` (raw SQL, `src/lib/server/eipsinsight.ts`) for live EIP lookups and real All Core Devs decisions, falling back to EIPsInsight's public RPC if the DB is unreachable.
+
+## Run locally
 
 ```bash
-npm run dev
-# or
-yarn dev
-# or
-pnpm dev
-# or
-bun dev
+pnpm install          # also runs prisma generate
 ```
 
-Open [http://localhost:3000](http://localhost:3000) with your browser to see the result.
+`.env` (gitignored) needs: `DATABASE_URL`, `ETHQUEST_SCHEMA=ethquest`, `SESSION_SECRET`, `ADMIN_SEED_EMAIL`, `ADMIN_SEED_PASSWORD`, `KIOSK_TOKEN`, `NEXT_PUBLIC_SITE_URL` (and `PIXELLAB_API_KEY` only to regenerate art).
 
-You can start editing the page by modifying `app/page.tsx`. The page auto-updates as you edit the file.
+```bash
+pnpm prisma migrate deploy   # creates/updates the ethquest schema only
+```
 
-This project uses [`next/font`](https://nextjs.org/docs/app/building-your-application/optimizing/fonts) to automatically optimize and load [Geist](https://vercel.com/font), a new font family for Vercel.
+```bash
+pnpm db:seed                 # idempotent; never overwrites admin edits or live stock
+```
 
-## Learn More
+```bash
+pnpm dev
+```
 
-To learn more about Next.js, take a look at the following resources:
+```bash
+pnpm test                    # unit + DB integration (redemption race, XP idempotency)
+```
 
-- [Next.js Documentation](https://nextjs.org/docs) - learn about Next.js features and API.
-- [Learn Next.js](https://nextjs.org/learn) - an interactive Next.js tutorial.
+## Booth runbook
 
-You can check out [the Next.js GitHub repository](https://github.com/vercel/next.js) - your feedback and contributions are welcome!
+| What | Where |
+|---|---|
+| QR to print for players | `NEXT_PUBLIC_SITE_URL` + `/play` |
+| Volunteer scanner | `/booth-admin/scan` (log in first, then players' QR codes open straight into it from the phone camera; 6-letter code as fallback) |
+| Big-screen leaderboard | `/kiosk/leaderboard?token=$KIOSK_TOKEN` (auto-refreshes every 10s) |
+| Restock / change tiers | `/booth-admin/rewards` (stock changes are relative and can't go below zero) |
+| Grant EIP Wall / video badges, bonus XP | `/booth-admin/players` |
+| Edit questions, upgrades, pathways, missions | `/booth-admin/*` |
+| XP values, staff accounts | `/booth-admin/settings` (OWNER) |
+| Shorts host prompts + consent rules | `/booth-admin/host` |
 
-## Deploy on Vercel
+Roles: **VOLUNTEER** (scan/redeem, grant booth badges), **ADMIN** (+ content, inventory, bans), **OWNER** (+ XP config, staff).
 
-The easiest way to deploy your Next.js app is to use the [Vercel Platform](https://vercel.com/new?utm_medium=default-template&filter=next.js&utm_source=create-next-app&utm_campaign=create-next-app-readme) from the creators of Next.js.
+## Security notes
 
-Check out our [Next.js deployment documentation](https://nextjs.org/docs/app/building-your-application/deploying) for more details.
+- Player and staff sessions: random 256-bit tokens in HTTP-only cookies. Only SHA-256 hashes are stored.
+- All scoring and XP happen on the server. Correct answers never reach the client before you answer.
+- XP is an **append-only ledger** with a unique `(player, idempotencyKey)`: refreshes, double-taps and replays can't double-award. A DB trigger blocks edits.
+- Redemption is a single transaction with conditional updates (`ISSUED→REDEEMED`, `stock > 0`), plus a `CHECK (stock >= 0)` constraint. Every scan is audit-logged.
+- Postgres-backed rate limits on session creation, answers, lookups, claims, logins and scans.

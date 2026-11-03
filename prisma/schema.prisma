@@ -1,0 +1,395 @@
+// ETHQuest lives in its own Postgres schema ("ethquest") inside the EIPsInsight database.
+// It never writes to public.*; EIPsInsight tables are read with raw SQL in src/lib/server/eipsinsight.ts.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../src/generated/prisma"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Difficulty {
+  EXPLORER
+  BUILDER
+  NERD
+}
+
+enum AdminRole {
+  OWNER
+  ADMIN
+  VOLUNTEER
+}
+
+enum ClaimStatus {
+  ISSUED
+  REDEEMED
+  VOID
+}
+
+enum UpgradeStatus {
+  LIVE
+  SCHEDULED
+  IN_DEVELOPMENT
+  PLANNED
+  SPECULATIVE
+}
+
+enum AttemptStatus {
+  ACTIVE
+  COMPLETED
+  ABANDONED
+}
+
+model Player {
+  id           String     @id @default(cuid())
+  nickname     String     @unique
+  avatar       String     @default("explorer")
+  difficulty   Difficulty @default(EXPLORER)
+  xpTotal      Int        @default(0)
+  level        Int        @default(1)
+  recoveryHash String?    @unique
+  isBanned     Boolean    @default(false)
+  createdAt    DateTime   @default(now())
+  lastSeenAt   DateTime   @default(now())
+
+  sessions     PlayerSession[]
+  xp           XPTransaction[]
+  attempts     MissionAttempt[]
+  achievements PlayerAchievement[]
+  claims       RewardClaim[]
+  pathways     PlayerPathway[]
+  lookups      EIPLookup[]
+
+  @@index([xpTotal(sort: Desc), createdAt])
+}
+
+model PlayerSession {
+  id        String   @id @default(cuid())
+  tokenHash String   @unique
+  playerId  String
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime @default(now())
+
+  @@index([playerId])
+}
+
+model Mission {
+  id           String   @id @default(cuid())
+  slug         String   @unique
+  world        String
+  kind         String
+  title        String
+  blurb        String
+  xpComplete   Int      @default(0)
+  xpPerCorrect Int      @default(5)
+  config       Json     @default("{}")
+  isActive     Boolean  @default(true)
+  sortOrder    Int      @default(0)
+  updatedAt    DateTime @updatedAt
+
+  attempts MissionAttempt[]
+}
+
+model MissionAttempt {
+  id          String        @id @default(cuid())
+  playerId    String
+  player      Player        @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  missionId   String
+  mission     Mission       @relation(fields: [missionId], references: [id])
+  difficulty  Difficulty
+  // Server-held round state (question ids, order, answers). Never sent to the client wholesale.
+  state       Json
+  score       Int           @default(0)
+  maxScore    Int           @default(0)
+  hintsUsed   Int           @default(0)
+  status      AttemptStatus @default(ACTIVE)
+  startedAt   DateTime      @default(now())
+  completedAt DateTime?
+
+  @@index([playerId, missionId])
+  @@index([missionId, status])
+}
+
+model QuizQuestion {
+  id            String     @id @default(cuid())
+  slug          String     @unique
+  // trivia | spot-fake | match | insider
+  kind          String
+  difficulty    Difficulty
+  topic         String
+  prompt        String
+  // trivia: [{id,label,correct}] · spot-fake: [{id,label,text,fake}] · match: [{left,right}]
+  options       Json
+  hint          String?
+  explanation   String
+  eipNumbers    Int[]
+  upgradeSlug   String?
+  learnMoreUrl  String
+  sourceUrl     String
+  verifiedAt    DateTime   @default(now())
+  isActive      Boolean    @default(true)
+  editedByAdmin Boolean    @default(false)
+  updatedAt     DateTime   @updatedAt
+
+  @@index([kind, difficulty, isActive])
+}
+
+model Upgrade {
+  id             String        @id @default(cuid())
+  slug           String        @unique
+  name           String
+  aka            String?
+  status         UpgradeStatus
+  activatedAt    DateTime?     @db.Date
+  blockNumber    Int?
+  forkEpoch      Int?
+  layer          String
+  oneLiner       String
+  majorChanges   String[]
+  eipsinsightUrl String
+  glyph          String        @default("diamond")
+  inHistoryGames Boolean       @default(true)
+  difficultyMin  Difficulty    @default(EXPLORER)
+  sourceUrl      String
+  editedByAdmin  Boolean       @default(false)
+  updatedAt      DateTime      @updatedAt
+
+  eips UpgradeEIP[]
+}
+
+model UpgradeEIP {
+  upgradeId String
+  upgrade   Upgrade @relation(fields: [upgradeId], references: [id], onDelete: Cascade)
+  eipNumber Int
+  title     String
+  headline  Boolean @default(false)
+
+  @@id([upgradeId, eipNumber])
+}
+
+// Curated EIPs used for hunts and as an offline fallback; live lookups read EIPsInsight's tables.
+model EIPRecord {
+  repo        String
+  number      Int
+  title       String
+  status      String
+  type        String?
+  category    String?
+  authors     String[]
+  created     String?
+  plainEnglish String?
+  funFact     String?
+  upgradeSlug String?
+  curated     Boolean  @default(false)
+  fetchedAt   DateTime @default(now())
+
+  @@id([repo, number])
+}
+
+model EIPHunt {
+  id          String     @id @default(cuid())
+  slug        String     @unique
+  clue        String
+  hint        String
+  answer      Int
+  repo        String     @default("eip")
+  difficulty  Difficulty
+  explanation String
+  isActive    Boolean    @default(true)
+}
+
+model EIPLookup {
+  id        String   @id @default(cuid())
+  playerId  String
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  repo      String
+  number    Int
+  found     Boolean
+  createdAt DateTime @default(now())
+
+  @@index([playerId])
+  @@index([repo, number])
+}
+
+model Pathway {
+  id       String        @id @default(cuid())
+  code     String        @unique
+  title    String
+  tagline  String
+  summary  String
+  color    String
+  steps    PathwayStep[]
+  players  PlayerPathway[]
+}
+
+model PathwayStep {
+  id        String   @id @default(cuid())
+  pathwayId String
+  pathway   Pathway  @relation(fields: [pathwayId], references: [id], onDelete: Cascade)
+  // START | EXPLORE | PARTICIPATE | CONTRIBUTE | NEXT
+  stage     String
+  // targeting: empty array = applies to everyone
+  roles     String[]
+  goals     String[]
+  title     String
+  action    String
+  // [{label,url}]
+  resources Json     @default("[]")
+  sortOrder Int      @default(0)
+
+  @@index([pathwayId, stage])
+}
+
+model PlayerPathway {
+  id        String   @id @default(cuid())
+  shareId   String   @unique
+  playerId  String
+  player    Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  pathwayId String
+  pathway   Pathway  @relation(fields: [pathwayId], references: [id])
+  role      String
+  interest  String
+  goal      String
+  snapshot  Json
+  createdAt DateTime @default(now())
+
+  @@index([playerId])
+}
+
+model Achievement {
+  id          String  @id @default(cuid())
+  slug        String  @unique
+  name        String
+  description String
+  icon        String
+  xpBonus     Int     @default(0)
+  isSecret    Boolean @default(false)
+  // Booth activities that staff verify manually.
+  manual      Boolean @default(false)
+  sortOrder   Int     @default(0)
+
+  players PlayerAchievement[]
+}
+
+model PlayerAchievement {
+  playerId      String
+  player        Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  achievementId String
+  achievement   Achievement @relation(fields: [achievementId], references: [id], onDelete: Cascade)
+  unlockedAt    DateTime    @default(now())
+  grantedBy     String?
+  seen          Boolean     @default(false)
+
+  @@id([playerId, achievementId])
+}
+
+// Append-only XP ledger. App code never updates or deletes rows.
+model XPTransaction {
+  id             String   @id @default(cuid())
+  playerId       String
+  player         Player   @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  amount         Int
+  reason         String
+  idempotencyKey String
+  attemptId      String?
+  createdBy      String?
+  createdAt      DateTime @default(now())
+
+  @@unique([playerId, idempotencyKey])
+  @@index([playerId, createdAt])
+  @@index([createdAt])
+}
+
+model Reward {
+  id           String  @id @default(cuid())
+  slug         String  @unique
+  name         String
+  description  String
+  icon         String
+  xpRequired   Int
+  stock        Int
+  initialStock Int
+  isActive     Boolean @default(true)
+  sortOrder    Int     @default(0)
+
+  claims RewardClaim[]
+}
+
+model RewardClaim {
+  id         String      @id @default(cuid())
+  playerId   String
+  player     Player      @relation(fields: [playerId], references: [id], onDelete: Cascade)
+  rewardId   String
+  reward     Reward      @relation(fields: [rewardId], references: [id])
+  tokenHash  String      @unique
+  shortCode  String      @unique
+  status     ClaimStatus @default(ISSUED)
+  expiresAt  DateTime
+  createdAt  DateTime    @default(now())
+  redeemedAt DateTime?
+  redeemedBy String?
+
+  @@index([playerId])
+  @@index([status, createdAt])
+}
+
+model AdminUser {
+  id           String         @id @default(cuid())
+  email        String         @unique
+  name         String
+  role         AdminRole
+  passwordHash String
+  isActive     Boolean        @default(true)
+  createdAt    DateTime       @default(now())
+  sessions     AdminSession[]
+}
+
+model AdminSession {
+  id        String    @id @default(cuid())
+  tokenHash String    @unique
+  adminId   String
+  admin     AdminUser @relation(fields: [adminId], references: [id], onDelete: Cascade)
+  expiresAt DateTime
+  createdAt DateTime  @default(now())
+}
+
+model AuditLog {
+  id        String   @id @default(cuid())
+  actorType String
+  actorId   String?
+  action    String
+  target    String?
+  meta      Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([action, createdAt])
+}
+
+// Anonymous analytics events (no PII).
+model Event {
+  id        BigInt   @id @default(autoincrement())
+  name      String
+  playerId  String?
+  props     Json     @default("{}")
+  createdAt DateTime @default(now())
+
+  @@index([name, createdAt])
+}
+
+model Setting {
+  key       String   @id
+  value     Json
+  updatedAt DateTime @updatedAt
+  updatedBy String?
+}
+
+model RateLimit {
+  key         String
+  windowStart DateTime
+  count       Int      @default(1)
+
+  @@id([key, windowStart])
+}
