@@ -1,4 +1,5 @@
 import "server-only";
+import { connection } from "next/server";
 import { db } from "./db";
 import { getEventConfig, rankedBests, rankedRunsToday, scoringOpen } from "./event";
 import { rankOf } from "./leaderboard";
@@ -8,6 +9,7 @@ export type RewardState = "collected" | "ready" | "locked" | "soldout";
 
 /** Everything the three-tier journey (home, rewards) needs for one player, in one round of parallel queries. */
 export async function getJourney(player: { id: string; xpTotal: number }) {
+  await connection(); // render path: reads the clock, so never prerender
   const cfg = await getEventConfig();
   const slugs = Object.keys(RANKED_GAMES) as RankedSlug[];
   const [rewards, claims, bests, rank, missions] = await Promise.all([

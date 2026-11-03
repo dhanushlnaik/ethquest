@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import Link from "next/link";
 import { getPlayer } from "@/lib/server/session";
 import { dailyTop, rankOf, topPlayers, type BoardRow } from "@/lib/server/leaderboard";
@@ -23,6 +24,7 @@ export default function LeaderboardPage({ searchParams }: PageProps<"/play/leade
 
 async function Board({ searchParams }: { searchParams: PageProps<"/play/leaderboard">["searchParams"] }) {
   const { view } = await searchParams;
+  await connection();
   const today = view === "today";
   const [rows, me, cfg] = await Promise.all([today ? dailyTop(50) : topPlayers(50), getPlayer(), getEventConfig()]);
   const myRank = me && !today ? await rankOf(me.id, me.xpTotal) : null;

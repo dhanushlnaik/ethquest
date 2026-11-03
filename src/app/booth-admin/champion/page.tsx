@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { db } from "@/lib/server/db";
 import { requireAdminPage } from "@/lib/server/admin";
 import { getEventConfig, scoringOpen } from "@/lib/server/event";
@@ -20,6 +21,7 @@ export default function ChampionPage() {
 
 async function Champion() {
   const me = await requireAdminPage("ADMIN");
+  await connection();
   const [cfg, top] = await Promise.all([getEventConfig(), topPlayers(10)]);
   const champ = cfg.championPlayerId ? await db.player.findUnique({ where: { id: cfg.championPlayerId }, select: { nickname: true, avatar: true, xpTotal: true } }) : null;
   const tieAtTop = top.length > 1 && top[1].rank === 1;

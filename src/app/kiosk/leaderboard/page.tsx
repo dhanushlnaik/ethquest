@@ -1,4 +1,5 @@
 import { Suspense } from "react";
+import { connection } from "next/server";
 import { timingSafeEqual } from "node:crypto";
 import QRCode from "qrcode";
 import { dailyTop, eventStats, topPlayers } from "@/lib/server/leaderboard";
@@ -29,6 +30,7 @@ export default function Kiosk({ searchParams }: PageProps<"/kiosk/leaderboard">)
 async function Board({ searchParams }: { searchParams: PageProps<"/kiosk/leaderboard">["searchParams"] }) {
   const { token } = await searchParams;
   if (!tokenOk(token)) return <p className="font-pixel p-10 text-center text-xl">Kiosk link invalid.</p>;
+  await connection();
   const [players, today, stats, cfg, qr] = await Promise.all([
     topPlayers(8),
     dailyTop(5),

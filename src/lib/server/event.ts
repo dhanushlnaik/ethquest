@@ -7,7 +7,6 @@ let cache: { at: number; value: EventConfig } | null = null;
 
 /** Booth event rules (T-shirt threshold, ranked run cap, scoring close time, declared champion). */
 export async function getEventConfig(): Promise<EventConfig> {
-  await connection(); // reads the clock: always request-time, never prerendered
   if (cache && Date.now() - cache.at < 15_000) return cache.value;
   const row = await db.setting.findUnique({ where: { key: "event" } });
   const value = { ...DEFAULT_EVENT, ...((row?.value as Partial<EventConfig>) ?? {}) };
@@ -26,7 +25,6 @@ export function eventDayStart(now = new Date()) {
 
 /** Ranked runs started today for one game. Starting counts, so abandoning a bad draw doesn't refund the run. */
 export async function rankedRunsToday(playerId: string, missionId: string) {
-  await connection();
   return db.missionAttempt.count({
     where: { playerId, missionId, startedAt: { gte: eventDayStart() }, state: { path: ["ranked"], equals: true } },
   });
@@ -50,6 +48,7 @@ export async function rankedBests(playerId: string) {
 
 /** What the "start ranked run" screen shows, without starting (or spending) a run. */
 export async function rankedPreview(playerId: string, slug: RankedSlug) {
+  await connection(); // render path: reads the clock, so never prerender
   const [cfg, mission] = await Promise.all([getEventConfig(), db.mission.findUnique({ where: { slug }, select: { id: true } })]);
   const [used, best] = await Promise.all([mission ? rankedRunsToday(playerId, mission.id) : 0, rankedBest(db, playerId, slug)]);
   const g = RANKED_GAMES[slug];
