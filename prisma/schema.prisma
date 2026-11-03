@@ -393,3 +393,61 @@ model RateLimit {
 
   @@id([key, windowStart])
 }
+
+// ---------------- Live quiz (Mentimeter-style, independent of ETHQuest progress) ----------------
+
+enum LiveStatus {
+  LOBBY
+  QUESTION
+  REVEAL
+  ENDED
+}
+
+model LiveSession {
+  id                String      @id @default(cuid())
+  /// 4-letter room code shown on the big screen.
+  code              String      @unique
+  quizSlug          String
+  title             String
+  status            LiveStatus  @default(LOBBY)
+  currentIndex      Int         @default(-1)
+  questionStartedAt DateTime?
+  createdBy         String?
+  createdAt         DateTime    @default(now())
+  endedAt           DateTime?
+
+  participants LiveParticipant[]
+  answers      LiveAnswer[]
+}
+
+model LiveParticipant {
+  id        String      @id @default(cuid())
+  sessionId String
+  session   LiveSession @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  name      String
+  tokenHash String      @unique
+  score     Int         @default(0)
+  createdAt DateTime    @default(now())
+
+  answers LiveAnswer[]
+
+  @@unique([sessionId, name])
+  @@index([sessionId, score(sort: Desc)])
+}
+
+model LiveAnswer {
+  id            String          @id @default(cuid())
+  sessionId     String
+  session       LiveSession     @relation(fields: [sessionId], references: [id], onDelete: Cascade)
+  participantId String
+  participant   LiveParticipant @relation(fields: [participantId], references: [id], onDelete: Cascade)
+  questionIndex Int
+  choice        Int
+  correct       Boolean
+  points        Int
+  answeredAt    DateTime        @default(now())
+
+  /// One answer per person per question: double taps and replays can't stack points.
+  @@unique([participantId, questionIndex])
+  @@index([sessionId, questionIndex])
+}

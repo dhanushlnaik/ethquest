@@ -120,3 +120,14 @@ describe("content integrity", () => {
     }
   });
 });
+
+describe("nickname filter", () => {
+  it("accepts real names that merely contain a flagged fragment", async () => {
+    const { cleanNickname } = await import("@/lib/server/nickname");
+    for (const n of ["Dhanush", "Harshit", "Shitij", "Arshit", "Cassandra", "Analyst", "BlobEnjoyer"]) expect(cleanNickname(n), n).toBe(n);
+  });
+  it("still rejects offensive names", async () => {
+    const { cleanNickname } = await import("@/lib/server/nickname");
+    for (const n of ["fuck", "FuckYou", "shit happens", "big_slut", "ass"]) expect(cleanNickname(n), n).toBeNull();
+  });
+});

@@ -11,6 +11,7 @@ const NAV = [
   { href: "/booth-admin", label: "Overview" },
   { href: "/booth-admin/scan", label: "Scan & Redeem" },
   { href: "/booth-admin/champion", label: "Hoodie champion" },
+  { href: "/live/host", label: "Live quiz" },
   { href: "/booth-admin/players", label: "Players" },
   { href: "/booth-admin/redemptions", label: "Redemptions" },
   { href: "/booth-admin/rewards", label: "Rewards" },
