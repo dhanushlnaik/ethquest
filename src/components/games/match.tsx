@@ -28,7 +28,7 @@ export function MatchRound({ round, reveal, pending, onSubmit }: { round: Extrac
   const leftFor = (rightId: string) => Object.keys(pairs).find((l) => pairs[l] === rightId);
 
   const pair = (leftId: string, rightId: string) => {
-    play("tap");
+    play("pair");
     setPairs((p) => {
       const next = { ...p };
       for (const k of Object.keys(next)) if (next[k] === rightId) delete next[k];

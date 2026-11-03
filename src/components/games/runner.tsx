@@ -8,7 +8,7 @@ import type { AnswerResult, PublicRound, Reveal, StartResult } from "@/lib/games
 import type { RankedPreview } from "@/lib/server/event";
 import { useFx, Confetti } from "../fx";
 import { Bar, Button, ButtonLink, ExternalLink, Panel, PixelIcon, PixelLoader, Sprite, Tag, cx } from "../pixel";
-import { play } from "@/lib/sfx";
+import { music, play } from "@/lib/audio";
 import { DIFFICULTIES } from "@/lib/config/game";
 import { MatchRound } from "./match";
 import { TimelineRound } from "./timeline";
@@ -354,7 +354,7 @@ function RankedGate({ gate, character, onStart }: { gate: RankedPreview; charact
             ? <>Only your best run counts. <b>{gate.runsLeft} of {gate.runsPerDay}</b> ranked runs left today; starting one uses it.</>
             : <>You&apos;ve used today&apos;s {gate.runsPerDay} ranked runs. Practice runs don&apos;t change your score.</>}
       </p>
-      <Button tone={counts ? "gold" : "purple"} size="lg" className="shine mt-5 w-full" onClick={onStart}>
+      <Button tone={counts ? "gold" : "purple"} size="lg" className="shine mt-5 w-full" onClick={() => { play("start"); onStart(); }}>
         {gate.resumable ? "Resume ranked run" : counts ? "Start ranked run" : "Start practice run"}
       </Button>
     </Panel>
@@ -379,6 +379,12 @@ function RankedBanner({ info }: { info: NonNullable<StartResult["ranked"]> }) {
 }
 
 function RankedBreakdown({ run }: { run: NonNullable<NonNullable<AnswerResult["summary"]>["ranked"]> }) {
+  // A coin "ding" for every line that scored, counted up like an arcade tally.
+  useEffect(() => {
+    const scored = [run.base, run.perfect, run.speed].filter((v) => v > 0).length;
+    const timers = Array.from({ length: scored }, (_, i) => setTimeout(() => play("coin"), 500 + i * 220));
+    return () => timers.forEach(clearTimeout);
+  }, [run.base, run.perfect, run.speed]);
   const lines = [
     ["Accuracy", run.base],
     ["Perfect bonus", run.perfect],
@@ -408,6 +414,12 @@ function RankedBreakdown({ run }: { run: NonNullable<NonNullable<AnswerResult["s
 function Summary({ summary, totalXP, game, onReplay, backHref, backLabel, character }: { summary: NonNullable<AnswerResult["summary"]>; totalXP: number; game: StartResult; onReplay: () => void; backHref: string; backLabel: string; character: string }) {
   const ratio = summary.maxScore ? summary.score / summary.maxScore : 1;
   const verdict = summary.perfect ? "PERFECT!" : ratio >= 0.6 ? "GREAT JOB!" : "NICE TRY!";
+  const triumph = summary.perfect || (summary.ranked?.improvedBy ?? 0) > 0;
+  // Fanfare + victory jingle for a perfect run or a new best; a softer chime otherwise.
+  useEffect(() => {
+    play(triumph ? "fanfare" : "unlock");
+    if (triumph) music.jingle("victory");
+  }, [triumph]);
   return (
     <div className="text-center">
       <Confetti show={summary.perfect} />

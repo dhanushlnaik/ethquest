@@ -23,7 +23,8 @@ export function WelcomeChest({ collected, soldOut, nickname }: { collected: bool
     start(async () => {
       setError(null);
       setOpened(true);
-      play("unlock");
+      play("chest");
+      setTimeout(() => play("coins"), 560);
       const res = await requestClaim("welcome-pack").catch(() => null);
       if (!res?.ok) return setError(res?.error ?? "Connection hiccup. Tap to try again.");
       setClaim(res.data);

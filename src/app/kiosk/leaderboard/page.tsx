@@ -5,6 +5,7 @@ import QRCode from "qrcode";
 import { dailyTop, eventStats, topPlayers } from "@/lib/server/leaderboard";
 import { getEventConfig, scoringOpen } from "@/lib/server/event";
 import { Countdown } from "@/components/countdown";
+import { KioskMusic } from "@/components/kiosk-music";
 import { LEVELS } from "@/lib/config/game";
 import { Panel, PixelIcon, Sprite, Treasure } from "@/components/pixel";
 import { Logo } from "@/components/logo";
@@ -100,6 +101,7 @@ async function Board({ searchParams }: { searchParams: PageProps<"/kiosk/leaderb
           ))}
         </div>
         <p className="font-arcade text-sm text-gold">Follow @EIPsInsight on X · eipsinsight.com</p>
+        <KioskMusic />
       </aside>
     </main>
   );

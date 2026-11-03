@@ -3,14 +3,14 @@ import { getPlayer } from "@/lib/server/session";
 import { levelFor } from "@/lib/config/game";
 import { Bar, Sprite } from "./pixel";
 import { DifficultySwitch } from "./difficulty-switch";
-import { SoundToggle } from "./sound-toggle";
+import { SoundPanel } from "./sound-panel";
 
 export async function Hud() {
   const player = await getPlayer();
   if (!player) {
     return (
       <div className="ml-auto flex items-center gap-2">
-        <SoundToggle />
+        <SoundPanel />
       </div>
     );
   }
@@ -31,7 +31,7 @@ export async function Hud() {
         </div>
       </Link>
       <DifficultySwitch value={player.difficulty} />
-      <SoundToggle />
+      <SoundPanel />
     </div>
   );
 }

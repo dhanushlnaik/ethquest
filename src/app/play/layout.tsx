@@ -5,6 +5,7 @@ import { Hud } from "@/components/hud";
 import { BottomNav } from "@/components/bottom-nav";
 import { NetworkBanner } from "@/components/network-banner";
 import { ClickTracker } from "@/components/click-tracker";
+import { MusicDirector } from "@/components/music-director";
 import { BrandMark, Wordmark } from "@/components/logo";
 
 export default function PlayLayout({ children }: LayoutProps<"/play">) {
@@ -27,6 +28,9 @@ export default function PlayLayout({ children }: LayoutProps<"/play">) {
         <BottomNav />
       </Suspense>
       <ClickTracker />
+      <Suspense>
+        <MusicDirector />
+      </Suspense>
     </FxProvider>
   );
 }

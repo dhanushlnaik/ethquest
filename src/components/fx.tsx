@@ -74,7 +74,7 @@ export function FxProvider({ children }: { children: ReactNode }) {
 
 function CelebrationModal({ item, onClose }: { item: { type: "level"; level: number; name: string } | { type: "ach"; name: string; icon: string; description: string }; onClose: () => void }) {
   useEffect(() => {
-    play(item.type === "level" ? "levelup" : "unlock");
+    play(item.type === "level" ? "levelup" : "achievement");
   }, [item.type]);
   return (
     <motion.div className="fixed inset-0 z-[70] flex items-center justify-center bg-void/60 p-4" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} onClick={onClose} role="dialog" aria-modal="true">

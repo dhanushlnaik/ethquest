@@ -71,7 +71,9 @@
   --tx-blue: #24587a;
   --tx-green: #3d6116;
   --tx-red: #a82a1b;
-  color: var(--tx);
+}
+@layer components {
+  .px-panel, .on-parchment { color: var(--tx); }
 }
 
 @theme inline {
@@ -141,12 +143,15 @@ body {
   font-weight: 400 !important;
   font-synthesis: none;
   font-size-adjust: 0.48;
-  letter-spacing: 0;
-  line-height: 1.35;
 }
 /* Small HUD labels need to stay legible: shrink them less. */
-.font-arcade { text-transform: uppercase; font-size-adjust: 0.6; line-height: 1.5; }
+.font-arcade { text-transform: uppercase; font-size-adjust: 0.6; }
 .px-btn { font-size-adjust: 0.55; }
+/* Defaults only: leading-* / tracking-* utilities still win. */
+@layer components {
+  .font-pixel, .font-arcade, .px-btn { letter-spacing: 0; line-height: 1.35; }
+  .font-arcade { line-height: 1.5; }
+}
 .pixelated { image-rendering: pixelated; image-rendering: crisp-edges; }
 
 /* ---------- World backdrop: the floating-cliff scene, dimmed, with a slow parallax drift ---------- */
@@ -192,6 +197,8 @@ body {
   100% { opacity: 0; transform: translate(30px, -90px); }
 }
 
+/* Component styles live in the components layer so Tailwind utilities (fixed, absolute, text-*, hidden…) can override them. */
+@layer components {
 /* ---------- Panels: parchment dialog boxes (pixel 9-slice) ---------- */
 .px-panel {
   --pf: url("/assets/ui/panel-parchment.png");
@@ -289,6 +296,8 @@ body {
 }
 .px-bar--purple > span { background: linear-gradient(180deg, #d8ec7a 0 30%, #9bbf3a 30% 70%, #5c7a1e 70%); }
 .px-bar--blue > span { background: linear-gradient(180deg, #b9e2f0 0 30%, #5f9ab5 30% 70%, #2e5f74 70%); }
+
+}
 
 /* ---------- Animated sprite sheets (PixelLab frames packed horizontally) ---------- */
 .sprite-sheet {

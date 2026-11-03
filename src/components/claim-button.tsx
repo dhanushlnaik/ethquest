@@ -19,7 +19,7 @@ export function ClaimButton({ slug, label = "Claim at booth", redeemed }: { slug
       setError(null);
       const res = await requestClaim(slug).catch(() => null);
       if (!res?.ok) return setError(res?.error ?? "Connection hiccup. Try again.");
-      play("unlock");
+      play("coins");
       setClaim(res.data);
     });
 
