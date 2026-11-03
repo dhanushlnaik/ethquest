@@ -14,8 +14,17 @@ export const metadata: Metadata = {
   description: "Play quick quests about Ethereum standards, collect pixel EIP trading cards and battle friends. A pixel treasure hunt through Ethereum by EIPsInsight.",
   applicationName: "ETHQuest",
   appleWebApp: { capable: true, title: "ETHQuest", statusBarStyle: "black-translucent" },
-  icons: { icon: "/icons/icon-192.png", apple: "/icons/apple-touch-icon.png" },
-  openGraph: { title: "ETHQuest by EIPsInsight", description: "Ethereum is serious. Learning about it doesn't have to be.", images: ["/assets/worlds/title-landscape.png"] },
+  icons: {
+    icon: [
+      { url: "/icons/icon.svg", type: "image/svg+xml" },
+      { url: "/icons/icon-32.png", sizes: "32x32", type: "image/png" },
+      { url: "/icons/icon-192.png", sizes: "192x192", type: "image/png" },
+    ],
+    apple: [{ url: "/icons/apple-touch-icon.png", sizes: "180x180" }],
+  },
+  // Default share image comes from src/app/opengraph-image.tsx (file convention).
+  openGraph: { type: "website", siteName: "ETHQuest by EIPsInsight", title: "ETHQuest by EIPsInsight", description: "Learn Ethereum standards. Collect every EIP as a pixel card. Battle your friends." },
+  twitter: { card: "summary_large_image", site: "@EIPsInsight", creator: "@EIPsInsight" },
 };
 
 export const viewport: Viewport = {

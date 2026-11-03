@@ -50,8 +50,11 @@ async function main() {
   const badgeTones: Record<string, "gold" | "purple" | "blue"> = {
     boots: "blue", scroll: "gold", magnifier: "blue", hourglass: "purple", mask: "purple", gavel: "gold",
     compass: "gold", helix: "blue", brain: "purple", star: "gold", ticket: "purple", crown: "gold", brick: "blue", camera: "blue",
+    gift: "purple", trophy: "gold", bolt: "blue",
   };
-  for (const [icon, tone] of Object.entries(badgeTones)) {
+  // Every icon gets a badge (achievements can use any icon); unlisted ones default to gold.
+  for (const icon of Object.keys(ICONS)) {
+    const tone = badgeTones[icon] ?? "gold";
     await write(path.join(A, "badges", `${icon}.svg`), badgeSvg(icon as IconName, tone));
     await write(path.join(A, "badges", `${icon}-locked.svg`), badgeSvg(icon as IconName, "locked"));
   }

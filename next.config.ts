@@ -7,6 +7,12 @@ const nextConfig: NextConfig = {
     return [{ source: "/", destination: "/play", permanent: false }];
   },
   partialPrefetching: true,
+  // Share images read pictures from public/ at runtime: ship them with those serverless functions on Vercel.
+  outputFileTracingIncludes: {
+    "/api/og/**": ["./public/assets/worlds/*.png", "./public/assets/brand/*.png", "./public/assets/characters/*.png"],
+    "/opengraph-image": ["./public/assets/worlds/*.png", "./public/assets/brand/*.png", "./public/assets/characters/*.png"],
+    "/twitter-image": ["./public/assets/worlds/*.png", "./public/assets/brand/*.png", "./public/assets/characters/*.png"],
+  },
   turbopack: {
     rules: {
       "*.css": {
